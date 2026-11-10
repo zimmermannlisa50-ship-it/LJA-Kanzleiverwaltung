@@ -1,9 +1,9 @@
 require("dotenv").config();
+
 const {
     Client,
     GatewayIntentBits,
     ChannelType,
-    PermissionFlagsBits,
     SlashCommandBuilder,
     REST,
     Routes,
@@ -14,23 +14,24 @@ const {
     TextInputStyle,
     ButtonBuilder,
     ButtonStyle,
-    EmbedBuilder
+    EmbedBuilder,
+    AttachmentBuilder
 } = require("discord.js");
 
-const fs = require("node:fs");
-const path = require("node:path");
+const fs = require("fs");
+const path = require("path");
 
 // ==========================================
-// LJA KONFIGURATION
+// LIBERTY JUSTICE ASSOCIATES
+// Kanzleiverwaltung
 // ==========================================
 
 const TOKEN = process.env.DISCORD_TOKEN;
-console.log("Token geladen:", Boolean(TOKEN), "Länge:", TOKEN?.length ?? 0);
 const CLIENT_ID = "1569762821124915274";
 const GUILD_ID = "1477731363082993665";
 
 // ==========================================
-// BERECHTIGUNGEN
+// ROLLENBERECHTIGUNGEN
 // ==========================================
 
 const ADMIN_ROLE_IDS = [
@@ -43,542 +44,1375 @@ const ADMIN_ROLE_IDS = [
     "1485672247610970132"
 ];
 
-function hasAdminPermission(member) {
-    return ADMIN_ROLE_IDS.some(roleId =>
-        member.roles.cache.has(roleId)
-    );
-}
+const HANDLER_ROLE_IDS = [
+    "1492156535042871446",
+    "1485672966770528468",
+    "1485672247610970132"
+];
+
+const LEADERSHIP_ROLE_ID = "1485672247610970132";
 
 // ==========================================
-// TICKETKATEGORIEN
+// TICKET-KATEGORIEN
 // ==========================================
 
-const TICKET_TYPES = {
+const TICKET_CATEGORIES = {
     strafverteidigung: {
         label: "Notfall / Strafverteidigung",
-        prefix: "Strafverteidigung",
+        emoji: "⚖️",
         categoryId: "1478006998137176065"
     },
-
-    amtshaftung: {
+    klage: {
         label: "Klage gegen Staat / Amtshaftung",
-        prefix: "Amtshaftung",
+        emoji: "🏛️",
         categoryId: "1478007088465838274"
     },
-
-    unternehmen: {
+    vertraege: {
         label: "Verträge / Unternehmen",
-        prefix: "Unternehmen",
+        emoji: "📜",
         categoryId: "1478007300458287345"
     },
-
     bewerbung: {
         label: "Bewerbungen",
-        prefix: "Bewerbung",
+        emoji: "💼",
         categoryId: "1478007779867230291"
     }
 };
 
-
 // ==========================================
-// TICKETNUMMERN SPEICHERN
+// DATENSPEICHER
 // ==========================================
 
-const COUNTER_FILE = path.join(__dirname, "ticket-counters.json");
+const DATA_DIR = path.join(__dirname, "data");
+const TICKET_DATA_FILE = path.join(DATA_DIR, "ticket-data.json");
+const COUNTER_FILE = path.join(DATA_DIR, "ticket-counters.json");
+const LOG_DIR = path.join(DATA_DIR, "ticket-logs");
 
-function getNextNumber(type) {
-    let counters = {};
+function ensureStorage() {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.mkdirSync(LOG_DIR, { recursive: true });
 
-    if (fs.existsSync(COUNTER_FILE)) {
-        counters = JSON.parse(
-            fs.readFileSync(COUNTER_FILE, "utf8")
-        );
+    if (!fs.existsSync(TICKET_DATA_FILE)) {
+        fs.writeFileSync(TICKET_DATA_FILE, "{}");
     }
 
-    counters[type] = (counters[type] || 0) + 1;
-
-    fs.writeFileSync(
-        COUNTER_FILE,
-        JSON.stringify(counters, null, 2)
-    );
-
-    return String(counters[type]).padStart(4, "0");
+    if (!fs.existsSync(COUNTER_FILE)) {
+        fs.writeFileSync(COUNTER_FILE, JSON.stringify({
+            strafverteidigung: 0,
+            klage: 0,
+            vertraege: 0,
+            bewerbung: 0
+        }, null, 2));
+    }
 }
 
-// ==========================================
-// HILFSFUNKTIONEN
-// ==========================================
+function readJson(file) {
+    ensureStorage();
+
+    try {
+        return JSON.parse(fs.readFileSync(file, "utf8"));
+    } catch {
+        return {};
+    }
+}
+
+function writeJson(file, data) {
+    ensureStorage();
+    fs.writeFileSync(file, JSON.stringify(data, null, 2));
+}
+
+function getTicketData() {
+    return readJson(TICKET_DATA_FILE);
+}
+
+function saveTicketData(data) {
+    writeJson(TICKET_DATA_FILE, data);
+}
 
 function cleanName(value) {
-    return value
+    return String(value || "")
+        .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase()
         .replace(/[^a-z0-9-]/g, "-")
         .replace(/-+/g, "-")
         .replace(/^-|-$/g, "")
-        .slice(0, 25);
+        .slice(0, 40);
+}
+
+function truncate(value, maxLength = 1024) {
+    const text = String(value ?? "");
+    return text.length > maxLength
+        ? text.slice(0, maxLength - 3) + "..."
+        : text;
+}
+
+function hasRole(member, roleIds) {
+    return roleIds.some(roleId => member.roles.cache.has(roleId));
+}
+
+function isHandler(member) {
+    return hasRole(member, HANDLER_ROLE_IDS);
+}
+
+function isLeadership(member) {
+    return member.roles.cache.has(LEADERSHIP_ROLE_ID);
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function formatTicketNumber(number) {
+    return String(number).padStart(4, "0");
+}
+// ==========================================
+// TICKET-STATUS
+// ==========================================
+
+function getTicketStatus(ticket) {
+    if (ticket.closed) {
+        return {
+            emoji: "⚫",
+            title: "Geschlossen",
+            color: 0x555555
+        };
+    }
+
+    if (ticket.completed) {
+        return {
+            emoji: "🟢",
+            title: "Erledigt",
+            color: 0x2ECC71
+        };
+    }
+
+    if (ticket.handlerId) {
+        return {
+            emoji: "🟡",
+            title: "In Bearbeitung",
+            color: 0xF1C40F
+        };
+    }
+
+    return {
+        emoji: "🔴",
+        title: "Wartet auf Bearbeitung",
+        color: 0xE74C3C
+    };
 }
 
 // ==========================================
-// DISCORD BOT
+// TICKET-EMBED ERSTELLEN
+// ==========================================
+
+function buildTicketEmbed(ticket) {
+    const status = getTicketStatus(ticket);
+
+    return new EmbedBuilder()
+        .setColor(status.color)
+        .setTitle(`${status.emoji} LIBERTY JUSTICE ASSOCIATES`)
+        .setDescription(
+            `**${ticket.categoryLabel}**\n\n` +
+            `Vielen Dank für deine Kontaktaufnahme mit unserer Kanzlei.`
+        )
+        .addFields(
+            {
+                name: "Mandant",
+                value: `<@${ticket.userId}>`,
+                inline: true
+            },
+            {
+                name: "Ticketnummer",
+                value: ticket.ticketNumber,
+                inline: true
+            },
+            {
+                name: "Bearbeitungsstatus",
+                value: ticket.handlerId
+                    ? `Übernommen von <@${ticket.handlerId}>`
+                    : status.title,
+                inline: false
+            },
+            {
+                name: "IC-Vorname",
+                value: truncate(ticket.firstName),
+                inline: true
+            },
+            {
+                name: "IC-Nachname",
+                value: truncate(ticket.lastName),
+                inline: true
+            },
+            {
+                name: "Betreff des Anliegens",
+                value: truncate(ticket.subject),
+                inline: false
+            },
+            {
+                name: "DOJ-Aktenzeichen",
+                value: ticket.dojCaseNumber || "Noch nicht hinterlegt",
+                inline: false
+            },
+            {
+                name: "Sachverhalt",
+                value: truncate(ticket.facts),
+                inline: false
+            },
+            {
+                name: "Abschluss",
+                value: ticket.paymentType || "Noch nicht abgeschlossen",
+                inline: false
+            }
+        )
+        .setFooter({
+            text: "Liberty Justice Associates | Kanzleiverwaltung"
+        })
+        .setTimestamp();
+}
+
+// ==========================================
+// TICKET-BUTTONS
+// ==========================================
+
+function buildTicketComponents(ticket) {
+    if (ticket.closed) {
+        return [];
+    }
+
+    const rows = [];
+
+    const firstRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId("lja_takeover")
+            .setLabel("Übernehmen")
+            .setEmoji("📥")
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(Boolean(ticket.handlerId) || ticket.completed),
+
+        new ButtonBuilder()
+            .setCustomId("lja_release")
+            .setLabel("Freigeben")
+            .setEmoji("🔓")
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(!ticket.handlerId || ticket.completed),
+
+        new ButtonBuilder()
+            .setCustomId("lja_wait")
+            .setLabel("Warten")
+            .setEmoji("⏳")
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(!ticket.handlerId || ticket.completed)
+    );
+
+    const secondRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId("lja_case_number")
+            .setLabel("DOJ-Aktenzeichen")
+            .setEmoji("📁")
+            .setStyle(ButtonStyle.Secondary),
+
+        new ButtonBuilder()
+            .setCustomId("lja_done")
+            .setLabel("Erledigt")
+            .setEmoji("✅")
+            .setStyle(ButtonStyle.Success)
+            .setDisabled(ticket.completed),
+
+        new ButtonBuilder()
+            .setCustomId("lja_close")
+            .setLabel("Ticket schließen")
+            .setEmoji("🔒")
+            .setStyle(ButtonStyle.Danger)
+    );
+
+    rows.push(firstRow, secondRow);
+
+    if (ticket.completed && !ticket.paymentType) {
+        const thirdRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId("lja_pro_bono")
+                .setLabel("Pro bono")
+                .setEmoji("⚖️")
+                .setStyle(ButtonStyle.Success),
+
+            new ButtonBuilder()
+                .setCustomId("lja_paid")
+                .setLabel("Rechnung bezahlt")
+                .setEmoji("💶")
+                .setStyle(ButtonStyle.Success)
+        );
+
+        rows.push(thirdRow);
+    }
+
+    return rows;
+}
+
+// ==========================================
+// TICKET-NACHRICHT AKTUALISIEREN
+// ==========================================
+
+async function updateTicketMessage(channel, ticket) {
+    if (!ticket.messageId) return;
+
+    try {
+        const message = await channel.messages.fetch(ticket.messageId);
+
+        await message.edit({
+            embeds: [buildTicketEmbed(ticket)],
+            components: buildTicketComponents(ticket)
+        });
+    } catch (error) {
+        console.error("Ticket-Nachricht konnte nicht aktualisiert werden:", error);
+    }
+}
+
+// ==========================================
+// TICKET-EVENTS SPEICHERN
+// ==========================================
+
+function addTicketEvent(ticket, event, userId, details = "") {
+    if (!ticket.events) {
+        ticket.events = [];
+    }
+
+    ticket.events.push({
+        event,
+        userId,
+        details,
+        timestamp: new Date().toISOString()
+    });
+}
+// ==========================================
+// HTML-TRANSKRIPT ERSTELLEN
+// ==========================================
+
+async function createHtmlTranscript(channel, ticket) {
+    const messages = [];
+    let lastMessageId;
+
+    // Nachrichten aus dem Ticket abrufen
+    while (true) {
+        const options = { limit: 100 };
+
+        if (lastMessageId) {
+            options.before = lastMessageId;
+        }
+
+        const batch = await channel.messages.fetch(options);
+
+        if (batch.size === 0) break;
+
+        messages.push(...batch.values());
+        lastMessageId = batch.last().id;
+
+        if (messages.length >= 1000) break;
+    }
+
+    // Chronologische Reihenfolge herstellen
+    messages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+
+    const messageHtml = messages.map(message => {
+        const author = escapeHtml(
+            message.member?.displayName ||
+            message.author?.username ||
+            "Unbekannt"
+        );
+
+        const content = escapeHtml(message.content || "")
+            .replace(/\n/g, "<br>");
+
+        const timestamp = new Date(message.createdTimestamp)
+            .toLocaleString("de-DE");
+
+        const attachments = [...message.attachments.values()]
+            .map(file =>
+                `<a href="${escapeHtml(file.url)}">${escapeHtml(file.name)}</a>`
+            )
+            .join("<br>");
+
+        return `
+            <div class="message">
+                <div class="author">${author}</div>
+                <div class="time">${timestamp}</div>
+                <div class="content">${content}</div>
+                ${attachments ? `<div class="attachments">${attachments}</div>` : ""}
+            </div>
+        `;
+    }).join("");
+
+    const html = `
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>LJA Ticket ${escapeHtml(ticket.ticketNumber)}</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #111318;
+        color: #eeeeee;
+        padding: 30px;
+    }
+
+    h1 {
+        color: #d4af37;
+        border-bottom: 1px solid #d4af37;
+        padding-bottom: 15px;
+    }
+
+    .metadata {
+        background: #20232b;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        line-height: 1.8;
+    }
+
+    .message {
+        background: #20232b;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+    }
+
+    .author {
+        color: #d4af37;
+        font-weight: bold;
+    }
+
+    .time {
+        color: #999999;
+        font-size: 12px;
+        margin: 4px 0 10px;
+    }
+
+    .content {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .attachments {
+        margin-top: 10px;
+    }
+
+    a {
+        color: #d4af37;
+    }
+</style>
+</head>
+
+<body>
+
+<h1>LIBERTY JUSTICE ASSOCIATES</h1>
+<h2>Ticket-Transkript</h2>
+
+<div class="metadata">
+    <strong>Ticketnummer:</strong> ${escapeHtml(ticket.ticketNumber)}<br>
+    <strong>Kategorie:</strong> ${escapeHtml(ticket.categoryLabel)}<br>
+    <strong>Mandant:</strong> ${escapeHtml(ticket.firstName)} ${escapeHtml(ticket.lastName)}<br>
+    <strong>Discord-Nutzer:</strong> ${escapeHtml(ticket.userId)}<br>
+    <strong>Betreff:</strong> ${escapeHtml(ticket.subject)}<br>
+    <strong>DOJ-Aktenzeichen:</strong> ${escapeHtml(ticket.dojCaseNumber || "Nicht hinterlegt")}<br>
+    <strong>Status:</strong> ${escapeHtml(getTicketStatus(ticket).title)}<br>
+    <strong>Erstellt am:</strong> ${new Date(ticket.createdAt).toLocaleString("de-DE")}
+</div>
+
+<h2>Nachrichtenverlauf</h2>
+
+${messageHtml}
+
+</body>
+</html>
+    `;
+
+    const fileName = `ticket-${ticket.ticketNumber}-transkript.html`;
+    const filePath = path.join(LOG_DIR, fileName);
+
+    fs.writeFileSync(filePath, html, "utf8");
+
+    return new AttachmentBuilder(filePath, {
+        name: fileName
+    });
+}
+// ==========================================
+// DISCORD-BOT INITIALISIEREN
 // ==========================================
 
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMembers
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
     ]
 });
 
 // ==========================================
-// SLASH COMMANDS
+// SLASH-COMMANDS
 // ==========================================
 
 const commands = [
     new SlashCommandBuilder()
         .setName("ticket-panel")
-        .setDescription("Veröffentlicht das LJA-Ticket-Panel.")
-        .setDefaultMemberPermissions(null)
+        .setDescription("Erstellt das Ticket-Panel der Kanzlei.")
+        .toJSON()
 ];
 
 // ==========================================
-// COMMANDS REGISTRIEREN
+// SLASH-COMMANDS REGISTRIEREN
 // ==========================================
 
 async function registerCommands() {
     const rest = new REST({ version: "10" }).setToken(TOKEN);
 
-    await rest.put(
-        Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
-        {
-            body: commands.map(command => command.toJSON())
-        }
-    );
+    try {
+        console.log("Registriere Slash-Commands...");
 
-    console.log("LJA-Slash-Commands registriert.");
+        await rest.put(
+            Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
+            { body: commands }
+        );
+
+        console.log("Slash-Commands erfolgreich registriert.");
+    } catch (error) {
+        console.error("Fehler bei der Command-Registrierung:", error);
+    }
 }
 
 // ==========================================
-// BOT ONLINE
+// BOT STARTEN
 // ==========================================
 
-client.once("ready", () => {
-    console.log(
-        `LJA Kanzleiverwaltung ist online als ${client.user.tag}`
-    );
+client.once("ready", async () => {
+    console.log(`LJA-Kanzleiverwaltung online als ${client.user.tag}`);
+
+    ensureStorage();
+    await registerCommands();
 });
 
 // ==========================================
-// INTERAKTIONEN
+// INTERACTION-HANDLER
 // ==========================================
 
 client.on("interactionCreate", async interaction => {
+
     try {
 
-        // ======================================
-        // TICKET-PANEL VERÖFFENTLICHEN
-        // ======================================
+        // ==================================
+        // /ticket-panel
+        // ==================================
 
-        if (
-            interaction.isChatInputCommand() &&
-            interaction.commandName === "ticket-panel"
-        ) {
+        if (interaction.isChatInputCommand()) {
 
-            const member = await interaction.guild.members.fetch(
-                interaction.user.id
-            );
+            if (interaction.commandName === "ticket-panel") {
 
-            if (!hasAdminPermission(member)) {
-                await interaction.reply({
-                    content: "Du hast keine Berechtigung für diesen Befehl.",
-                    ephemeral: true
-                });
-                return;
-            }
-
-            const menu = new StringSelectMenuBuilder()
-                .setCustomId("lja_ticket_type")
-                .setPlaceholder("Ticketart auswählen")
-                .addOptions(
-                    {
-                        label: "Notfall / Strafverteidigung",
-                        value: "strafverteidigung",
-                        emoji: "⚖️"
-                    },
-                    {
-                        label: "Klage gegen Staat / Amtshaftung",
-                        value: "amtshaftung",
-                        emoji: "🏛️"
-                    },
-                    {
-                        label: "Verträge / Unternehmen",
-                        value: "unternehmen",
-                        emoji: "📜"
-                    },
-                    {
-                        label: "Bewerbungen",
-                        value: "bewerbung",
-                        emoji: "💼"
-                    }
-                );
-
-            const embed = new EmbedBuilder()
-                .setColor(0xC5A45A)
-                .setTitle("LIBERTY JUSTICE ASSOCIATES")
-                
-                .setDescription(
-                      "*Willkommen bei Liberty Justice Associates.*\n\n" +
-                     "__Bitte wähle die passende Ticketart für dein Anliegen:__\n\n" +
-
-                     "⚖️ **Notfall / Strafverteidigung**\n" +
-                        "Anwaltliche Unterstützung bei strafrechtlichen Angelegenheiten.\n\n" +
-
-                        "🏛️ **Klage gegen Staat / Amtshaftung**\n" +
-                        "Rechtliche Anliegen und Schadensersatzforderungen gegenüber staatlichen Stellen.\n\n" +
-
-                        "📜 **Verträge / Unternehmen**\n" +
-                        "Vertragserstellung, Unternehmensberatung und rechtliche Betreuung.\n\n" +
-
-                        "💼 **Bewerbungen**\n" +
-                        "Bewerbungen und Anfragen zur Mitarbeit in der Kanzlei."
-                )
-                .setFooter({
-                    text: "LIBERTY JUSTICE ASSOCIATES • KANZLEIVERWALTUNG"
-                });
-
-            await interaction.channel.send({
-                embeds: [embed],
-                components: [
-                    new ActionRowBuilder().addComponents(menu)
-                ],
-                allowedMentions: {
-                    parse: []
+                if (!hasRole(interaction.member, ADMIN_ROLE_IDS)) {
+                    return interaction.reply({
+                        content: "Du bist nicht berechtigt, dieses Panel zu erstellen.",
+                        ephemeral: true
+                    });
                 }
-            });
 
-            await interaction.reply({
-                content: "Das Ticket-Panel wurde erfolgreich veröffentlicht.",
-                ephemeral: true
-            });
+                const embed = new EmbedBuilder()
+                    .setColor(0xD4AF37)
+                    .setTitle("LIBERTY JUSTICE ASSOCIATES")
+                    .setDescription(
+                        "*Willkommen bei Liberty Justice Associates.*\n\n" +
+                        "__Bitte wähle die passende Ticketart für dein Anliegen:__"
+                    )
+                    .setFooter({
+                        text: "Liberty Justice Associates | Kanzleiverwaltung"
+                    });
 
-            return;
+                const menu = new StringSelectMenuBuilder()
+                    .setCustomId("lja_ticket_type")
+                    .setPlaceholder("Wähle die passende Ticketart...")
+                    .addOptions(
+                        Object.entries(TICKET_CATEGORIES).map(([key, category]) => ({
+                            label: category.label,
+                            value: key,
+                            emoji: category.emoji
+                        }))
+                    );
+
+                const row = new ActionRowBuilder().addComponents(menu);
+
+                await interaction.reply({
+                    embeds: [embed],
+                    components: [row]
+                });
+            }
         }
 
-        // ======================================
-        // TICKETART AUSWÄHLEN
-        // ======================================
+        // Weitere Interaktionen folgen in Teil 5.
+
+    } catch (error) {
+        console.error("Fehler bei einer Interaktion:", error);
+
+        if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                content: "Es ist ein Fehler aufgetreten. Bitte versuche es erneut.",
+                ephemeral: true
+            }).catch(() => {});
+        }
+    }
+});
+// ==========================================
+// TICKET-AUSWAHL UND TICKET-ERSTELLUNG
+// ==========================================
+
+client.on("interactionCreate", async interaction => {
+
+    try {
+
+        // ==================================
+        // TICKET-KATEGORIE AUSWÄHLEN
+        // ==================================
 
         if (
             interaction.isStringSelectMenu() &&
             interaction.customId === "lja_ticket_type"
         ) {
 
-            const typeKey = interaction.values[0];
-            const type = TICKET_TYPES[typeKey];
+            const categoryKey = interaction.values[0];
+            const category = TICKET_CATEGORIES[categoryKey];
 
-            if (!type) {
-                await interaction.reply({
-                    content: "Diese Ticketart existiert nicht.",
+            if (!category) {
+                return interaction.reply({
+                    content: "Diese Ticketkategorie ist ungültig.",
                     ephemeral: true
                 });
-                return;
             }
 
             const modal = new ModalBuilder()
-                .setCustomId(`lja_form:${typeKey}`)
-                .setTitle("Mandantenaufnahme");
+                .setCustomId(`lja_ticket_modal_${categoryKey}`)
+                .setTitle("Anfrage an Liberty Justice Associates");
 
-            const fields = [
-                ["first", "IC-Vorname", TextInputStyle.Short],
-                ["last", "IC-Nachname", TextInputStyle.Short],
-                ["birth", "Geburtsdatum (TT.MM.JJJJ)", TextInputStyle.Short],
-                ["subject", "Betreff des Anliegens", TextInputStyle.Short],
-                ["facts", "Was ist passiert? Sachverhalt", TextInputStyle.Paragraph]
-            ];
+            const firstName = new TextInputBuilder()
+                .setCustomId("firstName")
+                .setLabel("IC-Vorname")
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true)
+                .setMaxLength(50);
+
+            const lastName = new TextInputBuilder()
+                .setCustomId("lastName")
+                .setLabel("IC-Nachname")
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true)
+                .setMaxLength(50);
+
+            const subject = new TextInputBuilder()
+                .setCustomId("subject")
+                .setLabel("Betreff des Anliegens")
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true)
+                .setMaxLength(100);
+
+            const facts = new TextInputBuilder()
+                .setCustomId("facts")
+                .setLabel("Sachverhalt")
+                .setStyle(TextInputStyle.Paragraph)
+                .setPlaceholder("Bitte schildere dein Anliegen möglichst ausführlich.")
+                .setRequired(true)
+                .setMaxLength(4000);
 
             modal.addComponents(
-                ...fields.map(([id, label, style]) =>
-                    new ActionRowBuilder().addComponents(
-                        new TextInputBuilder()
-                            .setCustomId(id)
-                            .setLabel(label)
-                            .setStyle(style)
-                            .setRequired(true)
-                    )
-                )
+                new ActionRowBuilder().addComponents(firstName),
+                new ActionRowBuilder().addComponents(lastName),
+                new ActionRowBuilder().addComponents(subject),
+                new ActionRowBuilder().addComponents(facts)
             );
 
             await interaction.showModal(modal);
             return;
         }
 
-        // ======================================
+        // ==================================
         // FORMULAR ABSENDEN
-        // ======================================
+        // ==================================
 
         if (
             interaction.isModalSubmit() &&
-            interaction.customId.startsWith("lja_form:")
+            interaction.customId.startsWith("lja_ticket_modal_")
         ) {
 
-            await interaction.deferReply({
-                ephemeral: true
-            });
+            await interaction.deferReply({ ephemeral: true });
 
-            const typeKey = interaction.customId.split(":")[1];
-            const type = TICKET_TYPES[typeKey];
+            const categoryKey = interaction.customId.replace(
+                "lja_ticket_modal_",
+                ""
+            );
 
-            if (!type) {
-                await interaction.editReply("Ungültige Ticketart.");
-                return;
+            const category = TICKET_CATEGORIES[categoryKey];
+
+            if (!category) {
+                return interaction.editReply({
+                    content: "Die ausgewählte Ticketkategorie wurde nicht gefunden."
+                });
             }
 
-            const first = interaction.fields.getTextInputValue("first").trim();
-            const last = interaction.fields.getTextInputValue("last").trim();
-            const birth = interaction.fields.getTextInputValue("birth").trim();
+            const firstName = interaction.fields.getTextInputValue("firstName").trim();
+            const lastName = interaction.fields.getTextInputValue("lastName").trim();
             const subject = interaction.fields.getTextInputValue("subject").trim();
             const facts = interaction.fields.getTextInputValue("facts").trim();
 
-            const guild = interaction.guild;
-            const member = await guild.members.fetch(interaction.user.id);
+            // Nummer für die jeweilige Kategorie erhöhen
+            const counters = readJson(COUNTER_FILE);
 
-            // NICKNAME ÄNDERN
+            counters[categoryKey] = (counters[categoryKey] || 0) + 1;
 
-            try {
-                await member.setNickname(
-                    `${first} ${last}`.slice(0, 32),
-                    "LJA – IC-Name übernommen"
-                );
-            } catch (error) {
-                console.error("Nickname konnte nicht geändert werden:", error);
-            }
+            writeJson(COUNTER_FILE, counters);
 
-            // KATEGORIE PRÜFEN
+            const ticketNumber = formatTicketNumber(counters[categoryKey]);
 
-            const category = await guild.channels.fetch(type.categoryId);
-
-            if (
-                !category ||
-                category.type !== ChannelType.GuildCategory
-            ) {
-                await interaction.editReply(
-                    "Die Ticketkategorie wurde nicht gefunden."
-                );
-                return;
-            }
-
-            // TICKETNUMMER
-
-            const number = getNextNumber(typeKey);
-
-            const channelName = [
-                number,
-                type.prefix,
-                first,
-                last
-            ]
-                .map(cleanName)
-                .join("-")
+            // Kanalnamen erstellen
+            const channelName =
+                `${ticketNumber}-${cleanName(categoryKey)}-${cleanName(firstName)}-${cleanName(lastName)}`
                 .slice(0, 100);
 
-            // TICKET ERSTELLEN
-
-            const channel = await guild.channels.create({
+            // Ticketkanal erstellen
+            const ticketChannel = await interaction.guild.channels.create({
                 name: channelName,
                 type: ChannelType.GuildText,
-                parent: category.id,
-                topic: `LJA-Ticket #${number} | ${type.label} | ${first} ${last}`
+                parent: category.categoryId,
+                permissionOverwrites: [
+                    {
+                        id: interaction.guild.roles.everyone.id,
+                        deny: ["ViewChannel"]
+                    },
+                    {
+                        id: interaction.user.id,
+                        allow: [
+                            "ViewChannel",
+                            "SendMessages",
+                            "ReadMessageHistory",
+                            "AttachFiles",
+                            "EmbedLinks"
+                        ]
+                    },
+                    {
+                        id: client.user.id,
+                        allow: [
+                            "ViewChannel",
+                            "SendMessages",
+                            "ReadMessageHistory",
+                            "ManageChannels",
+                            "AttachFiles",
+                            "EmbedLinks"
+                        ]
+                    },
+                    ...HANDLER_ROLE_IDS.map(roleId => ({
+                        id: roleId,
+                        allow: [
+                            "ViewChannel",
+                            "SendMessages",
+                            "ReadMessageHistory",
+                            "AttachFiles"
+                        ]
+                    }))
+                ]
             });
 
-            await channel.permissionOverwrites.edit(
+            // Ticketdaten speichern
+            const ticket = {
+                channelId: ticketChannel.id,
+                userId: interaction.user.id,
+                ticketNumber,
+                categoryKey,
+                categoryLabel: category.label,
+                firstName,
+                lastName,
+                subject,
+                facts,
+                dojCaseNumber: null,
+                handlerId: null,
+                completed: false,
+                closed: false,
+                paymentType: null,
+                createdAt: new Date().toISOString(),
+                messageId: null,
+                events: []
+            };
+
+            addTicketEvent(
+                ticket,
+                "Ticket erstellt",
                 interaction.user.id,
-                {
-                    ViewChannel: true,
-                    SendMessages: true,
-                    ReadMessageHistory: true,
-                    AttachFiles: true,
-                    EmbedLinks: true
-                }
+                category.label
             );
 
-            // TICKETÜBERSICHT
-
-            const embed = new EmbedBuilder()
-                .setColor(0xC5A45A)
-                .setTitle(`⚖️ Ticket #${number}`)
-                .setDescription("Ein neues Mandantenticket wurde eröffnet.")
-                .addFields(
-                    {
-                        name: "Kategorie",
-                        value: type.label
-                    },
-                    {
-                        name: "Erstellt für",
-                        value: `${first} ${last}`,
-                        inline: true
-                    },
-                    {
-                        name: "Geburtsdatum",
-                        value: birth,
-                        inline: true
-                    },
-                    {
-                        name: "Betreff",
-                        value: subject
-                    },
-                    {
-                        name: "DOJ-Aktenzeichen",
-                        value: "Noch nicht hinterlegt"
-                    },
-                    {
-                        name: "Hauptakte",
-                        value: "Noch nicht hinterlegt"
-                    },
-                    {
-                        name: "Vorgang",
-                        value: "Noch nicht hinterlegt"
-                    },
-                    {
-                        name: "Sachverhalt",
-                        value: facts
-                    },
-                    {
-                        name: "Bearbeitungsstatus",
-                        value: "Wartet auf Übernahme"
-                    }
-                )
-                .setFooter({
-                    text: "LIBERTY JUSTICE ASSOCIATES"
-                })
-                .setTimestamp();
-
-            // TICKET-SCHALTFLÄCHEN
-
-            const buttons = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId("lja_wait")
-                    .setLabel("Warten")
-                    .setStyle(ButtonStyle.Secondary),
-
-                new ButtonBuilder()
-                    .setCustomId("lja_claim")
-                    .setLabel("Übernehmen")
-                    .setStyle(ButtonStyle.Primary),
-
-                new ButtonBuilder()
-                    .setCustomId("lja_release")
-                    .setLabel("Freigeben")
-                    .setStyle(ButtonStyle.Secondary),
-
-                new ButtonBuilder()
-                    .setCustomId("lja_close")
-                    .setLabel("Ticket schließen")
-                    .setStyle(ButtonStyle.Danger)
-            );
-
-            await channel.send({
-                embeds: [embed],
-                components: [buttons],
-                allowedMentions: {
-                    parse: []
-                }
+            // Ticketnachricht erstellen
+            const ticketMessage = await ticketChannel.send({
+                content: `<@${interaction.user.id}>`,
+                embeds: [buildTicketEmbed(ticket)],
+                components: buildTicketComponents(ticket)
             });
 
-            await interaction.editReply(
-                `Dein Ticket wurde erfolgreich erstellt: ${channel}`
-            );
+            ticket.messageId = ticketMessage.id;
+
+            // Daten dauerhaft speichern
+            const allTickets = getTicketData();
+            allTickets[ticketChannel.id] = ticket;
+            saveTicketData(allTickets);
+
+            await interaction.editReply({
+                content:
+                    `Dein Ticket wurde erfolgreich erstellt: ${ticketChannel}\n\n` +
+                    `Ticketnummer: **${ticketNumber}**`
+            });
+
+            console.log(`Ticket ${ticketNumber} erstellt: ${ticketChannel.name}`);
 
             return;
         }
 
-        // ======================================
-        // TICKET-SCHALTFLÄCHEN
-        // ======================================
+    } catch (error) {
+        console.error("Fehler bei der Ticket-Erstellung:", error);
 
-        if (
-            interaction.isButton() &&
-            interaction.customId.startsWith("lja_")
-        ) {
+        if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                content: "Das Ticket konnte leider nicht erstellt werden.",
+                ephemeral: true
+            }).catch(() => {});
+        } else if (interaction.deferred && !interaction.replied) {
+            await interaction.editReply({
+                content: "Das Ticket konnte leider nicht erstellt werden."
+            }).catch(() => {});
+        }
+    }
 
-            const member = await interaction.guild.members.fetch(
+});
+// ==========================================
+// TICKET-BEARBEITUNG
+// ==========================================
+
+client.on("interactionCreate", async interaction => {
+
+    try {
+
+        if (!interaction.isButton() && !interaction.isModalSubmit()) return;
+
+        const customId = interaction.customId;
+
+        const ticketData = getTicketData();
+        const ticket = ticketData[interaction.channelId];
+
+        if (!ticket) return;
+
+        // ==================================
+        // TICKET ÜBERNEHMEN
+        // ==================================
+
+        if (customId === "lja_takeover") {
+
+            if (!isHandler(interaction.member)) {
+                return interaction.reply({
+                    content: "Du bist nicht berechtigt, Tickets zu übernehmen.",
+                    ephemeral: true
+                });
+            }
+
+            if (ticket.handlerId) {
+                return interaction.reply({
+                    content: "Dieses Ticket wurde bereits übernommen.",
+                    ephemeral: true
+                });
+            }
+
+            if (ticket.completed || ticket.closed) {
+                return interaction.reply({
+                    content: "Dieses Ticket ist bereits abgeschlossen.",
+                    ephemeral: true
+                });
+            }
+
+            ticket.handlerId = interaction.user.id;
+
+            addTicketEvent(
+                ticket,
+                "Ticket übernommen",
                 interaction.user.id
             );
 
-            if (!hasAdminPermission(member)) {
-                await interaction.reply({
-                    content: "Du hast keine Berechtigung für diese Aktion.",
+            saveTicketData(ticketData);
+
+            await updateTicketMessage(interaction.channel, ticket);
+
+            return interaction.reply({
+                content: `Du hast Ticket **${ticket.ticketNumber}** übernommen.`,
+                ephemeral: true
+            });
+        }
+
+        // ==================================
+        // TICKET FREIGEBEN
+        // ==================================
+
+        if (customId === "lja_release") {
+
+            if (!isHandler(interaction.member)) {
+                return interaction.reply({
+                    content: "Du bist nicht berechtigt, Tickets freizugeben.",
                     ephemeral: true
                 });
-                return;
             }
 
-            if (interaction.customId === "lja_close") {
-                await interaction.reply(
-                    "Das Ticket wird in 5 Sekunden geschlossen."
-                );
-
-                setTimeout(() => {
-                    interaction.channel.delete(
-                        "LJA-Ticket geschlossen"
-                    ).catch(console.error);
-                }, 5000);
-
-                return;
+            if (!ticket.handlerId) {
+                return interaction.reply({
+                    content: "Dieses Ticket ist derzeit nicht übernommen.",
+                    ephemeral: true
+                });
             }
 
-            if (interaction.customId === "lja_claim") {
-                await interaction.reply(
-                    `Ticket übernommen von ${interaction.user.tag}.`
-                );
-                return;
+            if (
+                ticket.handlerId !== interaction.user.id &&
+                !isLeadership(interaction.member)
+            ) {
+                return interaction.reply({
+                    content: "Nur der zuständige Bearbeiter oder die Kanzleileitung darf dieses Ticket freigeben.",
+                    ephemeral: true
+                });
             }
 
-            if (interaction.customId === "lja_release") {
-                await interaction.reply(
-                    `Ticket freigegeben von ${interaction.user.tag}.`
-                );
-                return;
+            ticket.handlerId = null;
+
+            addTicketEvent(
+                ticket,
+                "Ticket freigegeben",
+                interaction.user.id
+            );
+
+            saveTicketData(ticketData);
+
+            await updateTicketMessage(interaction.channel, ticket);
+
+            return interaction.reply({
+                content: "Das Ticket wurde wieder freigegeben.",
+                ephemeral: true
+            });
+        }
+
+        // ==================================
+        // TICKET AUF WARTEN SETZEN
+        // ==================================
+
+        if (customId === "lja_wait") {
+
+            if (!isHandler(interaction.member)) {
+                return interaction.reply({
+                    content: "Du bist nicht berechtigt, diesen Vorgang durchzuführen.",
+                    ephemeral: true
+                });
             }
 
-            if (interaction.customId === "lja_wait") {
-                await interaction.reply(
-                    "Das Ticket wurde auf Warten gesetzt."
-                );
-                return;
+            if (
+                ticket.handlerId !== interaction.user.id &&
+                !isLeadership(interaction.member)
+            ) {
+                return interaction.reply({
+                    content: "Nur der zuständige Bearbeiter oder die Kanzleileitung darf diesen Vorgang durchführen.",
+                    ephemeral: true
+                });
             }
+
+            ticket.handlerId = null;
+
+            addTicketEvent(
+                ticket,
+                "Ticket auf Warten gesetzt",
+                interaction.user.id
+            );
+
+            saveTicketData(ticketData);
+
+            await updateTicketMessage(interaction.channel, ticket);
+
+            return interaction.reply({
+                content: "Das Ticket wurde zurückgestellt und wartet auf eine weitere Bearbeitung.",
+                ephemeral: true
+            });
+        }
+
+        // ==================================
+        // DOJ-AKTENZEICHEN HINTERLEGEN
+        // ==================================
+
+        if (customId === "lja_case_number") {
+
+            if (!isLeadership(interaction.member)) {
+                return interaction.reply({
+                    content: "Nur die Kanzleileitung darf ein DOJ-Aktenzeichen hinterlegen.",
+                    ephemeral: true
+                });
+            }
+
+            const modal = new ModalBuilder()
+                .setCustomId("lja_case_number_modal")
+                .setTitle("DOJ-Aktenzeichen hinterlegen");
+
+            const caseNumberInput = new TextInputBuilder()
+                .setCustomId("caseNumber")
+                .setLabel("DOJ-Aktenzeichen")
+                .setPlaceholder("Aktenzeichen eingeben...")
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true)
+                .setMaxLength(100);
+
+            modal.addComponents(
+                new ActionRowBuilder().addComponents(caseNumberInput)
+            );
+
+            return interaction.showModal(modal);
+        }
+
+        // ==================================
+        // TICKET ALS ERLEDIGT MARKIEREN
+        // ==================================
+
+        if (customId === "lja_done") {
+
+            if (!isHandler(interaction.member)) {
+                return interaction.reply({
+                    content: "Du bist nicht berechtigt, Tickets abzuschließen.",
+                    ephemeral: true
+                });
+            }
+
+            if (
+                ticket.handlerId !== interaction.user.id &&
+                !isLeadership(interaction.member)
+            ) {
+                return interaction.reply({
+                    content: "Nur der zuständige Bearbeiter oder die Kanzleileitung darf dieses Ticket abschließen.",
+                    ephemeral: true
+                });
+            }
+
+            if (ticket.completed) {
+                return interaction.reply({
+                    content: "Dieses Ticket ist bereits als erledigt markiert.",
+                    ephemeral: true
+                });
+            }
+
+            ticket.completed = true;
+
+            addTicketEvent(
+                ticket,
+                "Ticket als erledigt markiert",
+                interaction.user.id
+            );
+
+            saveTicketData(ticketData);
+
+            await updateTicketMessage(interaction.channel, ticket);
+
+            await interaction.channel.send({
+                content:
+                    "Ihr Anliegen wurde geklärt. Vielen Dank für Ihr Vertrauen in Liberty Justice Associates."
+            });
+
+            return interaction.reply({
+                content: "Das Ticket wurde als erledigt markiert.",
+                ephemeral: true
+            });
+        }
+
+        // ==================================
+        // PRO BONO / RECHNUNG BEZAHLT
+        // ==================================
+
+        if (
+            customId === "lja_pro_bono" ||
+            customId === "lja_paid"
+        ) {
+
+            if (!isHandler(interaction.member)) {
+                return interaction.reply({
+                    content: "Du bist nicht berechtigt, diese Auswahl vorzunehmen.",
+                    ephemeral: true
+                });
+            }
+
+            if (
+                ticket.handlerId !== interaction.user.id &&
+                !isLeadership(interaction.member)
+            ) {
+                return interaction.reply({
+                    content: "Nur der zuständige Bearbeiter oder die Kanzleileitung darf diese Auswahl vornehmen.",
+                    ephemeral: true
+                });
+            }
+
+            if (!ticket.completed) {
+                return interaction.reply({
+                    content: "Das Ticket muss zuerst als erledigt markiert werden.",
+                    ephemeral: true
+                });
+            }
+
+            ticket.paymentType = customId === "lja_pro_bono"
+                ? "Pro bono"
+                : "Rechnung bezahlt";
+
+            addTicketEvent(
+                ticket,
+                "Abschlussart ausgewählt",
+                interaction.user.id,
+                ticket.paymentType
+            );
+
+            saveTicketData(ticketData);
+
+            await updateTicketMessage(interaction.channel, ticket);
+
+            return interaction.reply({
+                content: `Abschlussart gespeichert: **${ticket.paymentType}**`,
+                ephemeral: true
+            });
+        }
+
+        // ==================================
+        // DOJ-AKTENZEICHEN FORMULAR
+        // ==================================
+
+        if (
+            interaction.isModalSubmit() &&
+            interaction.customId === "lja_case_number_modal"
+        ) {
+
+            if (!isLeadership(interaction.member)) {
+                return interaction.reply({
+                    content: "Nur die Kanzleileitung darf ein DOJ-Aktenzeichen hinterlegen.",
+                    ephemeral: true
+                });
+            }
+
+            const caseNumber = interaction.fields
+                .getTextInputValue("caseNumber")
+                .trim();
+
+            ticket.dojCaseNumber = caseNumber;
+
+            addTicketEvent(
+                ticket,
+                "DOJ-Aktenzeichen hinterlegt",
+                interaction.user.id,
+                caseNumber
+            );
+
+            saveTicketData(ticketData);
+
+            await updateTicketMessage(interaction.channel, ticket);
+
+            return interaction.reply({
+                content: `DOJ-Aktenzeichen **${caseNumber}** wurde gespeichert.`,
+                ephemeral: true
+            });
         }
 
     } catch (error) {
+        console.error("Fehler bei der Ticket-Bearbeitung:", error);
 
-        console.error("LJA-Ticket-System:", error);
-
-        const message =
-            "Es ist ein Fehler aufgetreten. Bitte informiere die Kanzleileitung.";
-
-        if (interaction.deferred || interaction.replied) {
-            await interaction.followUp({
-                content: message,
-                ephemeral: true
-            }).catch(() => {});
-        } else {
+        if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
             await interaction.reply({
-                content: message,
+                content: "Bei der Bearbeitung ist ein Fehler aufgetreten.",
                 ephemeral: true
             }).catch(() => {});
         }
     }
 });
-
 // ==========================================
-// BOT STARTEN
+// TICKET SCHLIESSEN UND ARCHIVIEREN
 // ==========================================
 
-(async () => {
+client.on("interactionCreate", async interaction => {
+
     try {
-        await registerCommands();
-        await client.login(TOKEN);
+
+        if (!interaction.isButton()) return;
+
+        const customId = interaction.customId;
+
+        if (
+            customId !== "lja_close" &&
+            customId !== "lja_close_confirm" &&
+            customId !== "lja_close_cancel"
+        ) {
+            return;
+        }
+
+        const ticketData = getTicketData();
+        const ticket = ticketData[interaction.channelId];
+
+        if (!ticket) {
+            return interaction.reply({
+                content: "Die Ticketdaten konnten nicht gefunden werden.",
+                ephemeral: true
+            });
+        }
+
+        // ==================================
+        // BERECHTIGUNG PRÜFEN
+        // ==================================
+
+        const isCreator = interaction.user.id === ticket.userId;
+        const isAssignedHandler =
+            interaction.user.id === ticket.handlerId;
+
+        const isAuthorized =
+            isCreator ||
+            isAssignedHandler ||
+            isLeadership(interaction.member);
+
+        if (!isAuthorized) {
+            return interaction.reply({
+                content: "Du bist nicht berechtigt, dieses Ticket zu schließen.",
+                ephemeral: true
+            });
+        }
+
+        if (ticket.closed) {
+            return interaction.reply({
+                content: "Dieses Ticket ist bereits geschlossen.",
+                ephemeral: true
+            });
+        }
+
+        // ==================================
+        // SCHLIESSEN: BESTÄTIGUNG ANZEIGEN
+        // ==================================
+
+        if (customId === "lja_close") {
+
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId("lja_close_confirm")
+                    .setLabel("Ja, Ticket schließen")
+                    .setStyle(ButtonStyle.Danger),
+
+                new ButtonBuilder()
+                    .setCustomId("lja_close_cancel")
+                    .setLabel("Abbrechen")
+                    .setStyle(ButtonStyle.Secondary)
+            );
+
+            return interaction.reply({
+                content:
+                    "Möchtest du dieses Ticket wirklich schließen?\n" +
+                    "Nach der Bestätigung wird der Kanal archiviert und der Mandant kann keine Nachrichten mehr senden.",
+                components: [row],
+                ephemeral: true
+            });
+        }
+
+        // ==================================
+        // SCHLIESSEN: ABBRECHEN
+        // ==================================
+
+        if (customId === "lja_close_cancel") {
+            return interaction.update({
+                content: "Das Schließen des Tickets wurde abgebrochen.",
+                components: []
+            });
+        }
+
+        // ==================================
+        // SCHLIESSEN: BESTÄTIGEN
+        // ==================================
+
+        if (customId === "lja_close_confirm") {
+
+            await interaction.deferUpdate();
+
+            ticket.closed = true;
+
+            addTicketEvent(
+                ticket,
+                "Ticket geschlossen und archiviert",
+                interaction.user.id
+            );
+
+            saveTicketData(ticketData);
+
+            // HTML-Transkript erstellen
+            const transcript = await createHtmlTranscript(
+                interaction.channel,
+                ticket
+            );
+
+            // Transkript im Ticket hochladen
+            await interaction.channel.send({
+                content: "📁 **Ticket-Transkript:** Das vollständige Gespräch wurde archiviert.",
+                files: [transcript]
+            });
+
+            // Mandanten-Schreibrechte entfernen
+            await interaction.channel.permissionOverwrites.edit(
+                ticket.userId,
+                {
+                    SendMessages: false,
+                    AttachFiles: false
+                }
+            );
+
+            // Ticketnachricht aktualisieren und Buttons entfernen
+            await updateTicketMessage(interaction.channel, ticket);
+
+            const ticketMessage = await interaction.channel.messages.fetch(
+                ticket.messageId
+            );
+
+            await ticketMessage.edit({
+                embeds: [buildTicketEmbed(ticket)],
+                components: []
+            });
+
+            // Kanal umbenennen
+            const archivedName = `geschlossen-${interaction.channel.name}`
+                .slice(0, 100);
+
+            await interaction.channel.setName(archivedName);
+
+            // Bestätigung anzeigen
+            await interaction.editReply({
+                content: "Das Ticket wurde erfolgreich geschlossen und archiviert.",
+                components: []
+            });
+
+            console.log(
+                `Ticket ${ticket.ticketNumber} wurde geschlossen und archiviert.`
+            );
+
+            return;
+        }
+
     } catch (error) {
-        console.error("LJA-Bot konnte nicht gestartet werden:", error);
+        console.error("Fehler beim Schließen des Tickets:", error);
+
+        if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                content: "Das Ticket konnte nicht geschlossen werden.",
+                ephemeral: true
+            }).catch(() => {});
+        }
     }
-})();
+});
+// ==========================================
+// BOT-LOGIN
+// ==========================================
+
+if (!TOKEN) {
+    console.error("Fehler: DISCORD_TOKEN wurde nicht gefunden.");
+    process.exit(1);
+}
+
+client.login(TOKEN);
