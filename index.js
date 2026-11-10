@@ -25,6 +25,7 @@ const path = require("node:path");
 // ==========================================
 
 const TOKEN = process.env.DISCORD_TOKEN;
+console.log("Token geladen:", Boolean(TOKEN), "Länge:", TOKEN?.length ?? 0);
 const CLIENT_ID = "1569762821124915274";
 const GUILD_ID = "1477731363082993665";
 
