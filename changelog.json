@@ -299,5 +299,12 @@
     "permissions": [
       "Personalverwaltung erhält Bewerbungsrechte; andere Personalakten bleiben nach bisherigen Regeln geschützt."
     ]
+  },
+  {
+    "id": "legal-ticket-name-reason",
+    "date": "2026-11-13",
+    "changed": [
+      "Ticketnamen ergänzen zwischen Nummer und IC-Name: notfall, klage-staat oder allg-frage."
+    ]
   }
 ]
