@@ -563,6 +563,26 @@ const client = new Client({
 // ==========================================
 
 const panels = require("./panels")({ client, hasRole, ADMIN_ROLE_IDS, TICKET_CATEGORIES, readJson, writeJson, DATA_DIR });
+const registrationStore = require("./registration-store");
+client.on("guildMemberAdd", async member => {
+    if (member.guild.id !== GUILD_ID || member.user.bot) return;
+    try {
+        if (registrationStore.mustRegister(member.id) && member.roles.cache.has("1477932235842654299")) await member.roles.remove("1477932235842654299", "IC-Registrierung steht noch aus");
+        await require("./registration").invite(member);
+    } catch (error) { console.error("Registrierungsbeitritt:", error.message); }
+});
+client.on("guildMemberUpdate", async (before, member) => {
+    if (member.guild.id !== GUILD_ID || member.user.bot) return;
+    try {
+        if (registrationStore.mustRegister(member.id) && member.roles.cache.has("1477932235842654299")) await member.roles.remove("1477932235842654299", "IC-Registrierung steht noch aus");
+        if (member.pending === false && (before.pending !== false || !registrationStore.read().invited?.[member.id])) await require("./registration").invite(member);
+    } catch (error) { console.error("Registrierungsfreigabe:", error.message); }
+});
+client.on("interactionCreate", async interaction => {
+    if (!["lja_register", "lja_register_form"].includes(interaction.customId)) return;
+    const modulePath = require.resolve("./registration"); delete require.cache[modulePath];
+    await require(modulePath).handle(client, interaction);
+});
 const commands = [
     new SlashCommandBuilder().setName("bot-panel").setDescription("?ffnet die Kanzlei-Botverwaltung.").toJSON(),
     new SlashCommandBuilder()
@@ -602,6 +622,11 @@ client.once("clientReady", async () => {
     ensureStorage();
     await registerCommands();
     await panels.start().catch(console.error);
+    if (registrationStore.read().active) {
+        const guild = await client.guilds.fetch(GUILD_ID);
+        await guild.members.fetch();
+        for (const member of guild.members.cache.values()) await require("./registration").invite(member);
+    }
 });
 
 // ==========================================
@@ -663,6 +688,7 @@ client.on("interactionCreate", async interaction => {
             interaction.customId === "lja_ticket_type"
         ) {
 
+            if (registrationStore.mustRegister(interaction.user.id)) return await interaction.reply({content: "Bitte zuerst deine IC-Daten in der Willkommenshalle hinterlegen: <#1477731364403941540>", flags: 64});
             const categoryKey = interaction.values[0];
             if (categoryKey === "rollen") return await panels.chooseRole(interaction);
             const category = TICKET_CATEGORIES[categoryKey];
@@ -708,6 +734,8 @@ client.on("interactionCreate", async interaction => {
                 .setMaxLength(4000);
 
             const phone = new TextInputBuilder().setCustomId("phone").setLabel("IC-Telefonnummer").setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(50);
+            const savedProfile = registrationStore.profile(interaction.user.id);
+            if (savedProfile) { firstName.setValue(savedProfile.firstName); lastName.setValue(savedProfile.lastName); phone.setValue(savedProfile.phone); }
             const inputs = categoryKey === "bewerbung" ? [firstName, lastName, phone] : [firstName, lastName, phone, subject, facts];
             modal.addComponents(...inputs.map(input => new ActionRowBuilder().addComponents(input)));
             await interaction.showModal(modal);
@@ -738,6 +766,7 @@ client.on("interactionCreate", async interaction => {
                 });
             }
 
+            if (registrationStore.mustRegister(interaction.user.id)) return await interaction.editReply("Bitte zuerst deine IC-Daten in der Willkommenshalle hinterlegen.");
             const firstName = interaction.fields.getTextInputValue("firstName").trim();
             const lastName = interaction.fields.getTextInputValue("lastName").trim();
             const phone = interaction.fields.getTextInputValue("phone").trim();

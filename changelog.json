@@ -76,5 +76,16 @@
     "changed": [
       "Alle Änderungen eines Tages stehen gesammelt in einer Nachricht; Tageswechsel um 00:00 Uhr deutscher Zeit."
     ]
+  },
+  {
+    "id": "registration-prepared",
+    "date": "2026-11-12",
+    "title": "Registrierung",
+    "added": [
+      "IC-Pflichtregistrierung mit Ticketübernahme vorbereitet; Aktivierung folgt nach Einschalten der Discord-Regelbestätigung."
+    ],
+    "changed": [
+      "Rechteänderungen erhalten einen eigenen Abschnitt im Tageschangelog."
+    ]
   }
 ]

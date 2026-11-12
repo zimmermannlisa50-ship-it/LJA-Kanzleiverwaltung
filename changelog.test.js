@@ -8,13 +8,14 @@ const publish=require('./changelog');
  const make=(embeds,author='bot')=>{const m={id:String(++sequence),author:{id:author},embeds,edit:async p=>{m.embeds=p.embeds.map(e=>e.toJSON());},delete:async()=>messages.delete(m.id)};messages.set(m.id,m);return m;};
  const channel={id:'log',messages:{fetch:async()=>{const batch=new Map([...messages].reverse());batch.last=()=>[...batch.values()].at(-1);return batch;}},send:async p=>make(p.embeds.map(e=>e.toJSON()))};
  const client={user:{id:'bot'},channels:{fetch:async()=>channel}};
- const entries=[{id:'a',date:'2026-11-12',added:['Neu']},{id:'b',date:'2026-11-12',fixed:['Fehler behoben']}];
+ const entries=[{id:'a',date:'2026-11-12',added:['Neu']},{id:'b',date:'2026-11-12',fixed:['Fehler behoben'],permissions:['Bürgerzugriff angepasst']}];
  make([{footer:{text:'LJA Changelog | a | 1/1'}}]);make([{footer:{text:'LJA Changelog | b | 1/1'}}]);
  const foreign=make([{description:'Unabhängige Nachricht'}]);
- let result=await publish(client,'log',{entries});assert.equal(result.ids.length,1);assert.equal(messages.size,2);assert(messages.has(foreign.id));
+ let result=await publish(client,'log',{entries});assert.equal(result.ids.length,1);assert(messages.get(result.ids[0]).embeds[0].description.includes('🔐 RECHTE'));assert.equal(messages.size,2);assert(messages.has(foreign.id));
  const id=result.ids[0];entries.push({id:'c',date:'2026-11-12',changed:['Ergänzung']});result=await publish(client,'log',{entries});assert.equal(result.ids[0],id);assert(messages.get(id).embeds[0].description.includes('Ergänzung'));
  const todayText=messages.get(id).embeds[0].description;
  entries.push({id:'d',date:'2026-11-13',added:['Nächster Tag']});result=await publish(client,'log',{entries});assert.equal(result.ids.length,2);assert.equal(messages.get(id).embeds[0].description,todayText);
  await publish(client,'log',{entries});assert.equal(messages.size,3);
  console.log('OK: Ein Eintrag pro Tag; Ergänzungen am selben Tag; Migration, Fremdnachrichten, Mitternacht und Sommerzeit geprüft.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
+

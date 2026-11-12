@@ -1,14 +1,14 @@
 ﻿const fs=require('fs');
 const path=require('path');
 const {EmbedBuilder}=require('discord.js');
-const labels={added:'🟢 HINZUGEFÜGT',changed:'🟡 GEÄNDERT',fixed:'🔧 BEHOBEN',removed:'🔴 ENTFERNT'};
+const labels={added:'🟢 HINZUGEFÜGT',changed:'🟡 GEÄNDERT',fixed:'🔧 BEHOBEN',removed:'🔴 ENTFERNT',permissions:'🔐 RECHTE'};
 function berlinDate(now=new Date()){
  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
  const get=type=>parts.find(p=>p.type===type).value;return `${get('year')}-${get('month')}-${get('day')}`;
 }
 function groupDays(entries){
  const days=new Map();for(const entry of entries){if(!/^\d{4}-\d{2}-\d{2}$/.test(entry.date))throw Error('Ungültiges Changelogdatum: '+entry.id);
- if(!days.has(entry.date))days.set(entry.date,{date:entry.date,ids:[],added:[],changed:[],fixed:[],removed:[]});
+ if(!days.has(entry.date))days.set(entry.date,{date:entry.date,ids:[],added:[],changed:[],fixed:[],removed:[],permissions:[]});
  const day=days.get(entry.date);day.ids.push(entry.id);for(const key of Object.keys(labels))for(const item of entry[key]||[])if(!day[key].includes(item))day[key].push(item);
  }return [...days.values()].sort((a,b)=>a.date.localeCompare(b.date));
 }
@@ -55,3 +55,4 @@ module.exports=async function publishChangelogs(client,channelId,options={}){
 module.exports.render=render;
 module.exports.groupDays=groupDays;
 module.exports.berlinDate=berlinDate;
+
