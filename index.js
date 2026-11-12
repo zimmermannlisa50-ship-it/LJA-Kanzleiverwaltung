@@ -21,6 +21,8 @@ const {
 const fs = require("fs");
 const path = require("path");
 const ticketWorkflow = require("./ticket-workflow");
+const ticketRouting = require("./ticket-routing")();
+const diagnostics = require("./bot-diagnostics");
 
 // ==========================================
 // LIBERTY JUSTICE ASSOCIATES
@@ -199,7 +201,7 @@ async function updateTicketMessage(channel, ticket) {
         });
         if (["strafverteidigung", "klage", "beratung"].includes(ticket.categoryKey)) await personnel.caseIndex(ticket);
     } catch (error) {
-        console.error("Ticket-Nachricht konnte nicht aktualisiert werden:", error);
+        diagnostics.error("Ticket-Nachricht", error);
     }
 }
 
@@ -291,7 +293,7 @@ async function registerCommands() {
 
         console.log("Slash-Commands erfolgreich registriert.");
     } catch (error) {
-        console.error("Fehler bei der Command-Registrierung:", error);
+        diagnostics.error("Command-Registrierung", error);
     }
 }
 
@@ -345,7 +347,7 @@ client.on("interactionCreate", async interaction => {
         // Weitere Interaktionen folgen in Teil 5.
 
     } catch (error) {
-        console.error("Fehler bei einer Interaktion:", error);
+        diagnostics.error("Interaktion", error, interaction);
 
         if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
             await interaction.reply({
@@ -362,6 +364,8 @@ client.on("interactionCreate", async interaction => {
 client.on("interactionCreate", async interaction => {
 
     try {
+        const route = ticketRouting.parse(interaction.customId);
+        if (!route) return;
 
         // ==================================
         // TICKET-KATEGORIE AUSWÄHLEN
@@ -369,7 +373,7 @@ client.on("interactionCreate", async interaction => {
 
         if (
             interaction.isStringSelectMenu() &&
-            interaction.customId === "lja_ticket_type"
+            route.action === "type"
         ) {
 
             if (registrationStore.mustRegister(interaction.user.id)) return await interaction.reply({content: "Bitte zuerst deine IC-Daten nach Annahme des Kanzleiregelwerks hinterlegen: <#1477943304694923397>", flags: 64});
@@ -385,7 +389,7 @@ client.on("interactionCreate", async interaction => {
             }
 
             const modal = new ModalBuilder()
-                .setCustomId(`lja_ticket_modal_${categoryKey}`)
+                .setCustomId(ticketRouting.formId(categoryKey))
                 .setTitle("Anfrage an Liberty Justice Associates");
 
             const firstName = new TextInputBuilder()
@@ -423,6 +427,7 @@ client.on("interactionCreate", async interaction => {
             const inputs = categoryKey === "bewerbung" ? [firstName, lastName, phone] : [firstName, lastName, phone, subject, facts];
             modal.addComponents(...inputs.map(input => new ActionRowBuilder().addComponents(input)));
             await interaction.showModal(modal);
+            diagnostics.acknowledged(interaction);
             return;
         }
 
@@ -432,15 +437,13 @@ client.on("interactionCreate", async interaction => {
 
         if (
             interaction.isModalSubmit() &&
-            interaction.customId.startsWith("lja_ticket_modal_")
+            route.action === "form"
         ) {
 
-            await interaction.deferReply({ ephemeral: true });
+            await interaction.deferReply({ flags: 64 });
+            diagnostics.acknowledged(interaction);
 
-            const categoryKey = interaction.customId.replace(
-                "lja_ticket_modal_",
-                ""
-            );
+            const categoryKey = route.category;
 
             const category = TICKET_CATEGORIES[categoryKey];
 
@@ -568,7 +571,8 @@ client.on("interactionCreate", async interaction => {
         }
 
     } catch (error) {
-        console.error("Fehler bei der Ticket-Erstellung:", error);
+        diagnostics.error("Ticket-Erstellung", error, interaction);
+        if ([10062, 40060].includes(Number(error.code))) return;
 
         if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
             await interaction.reply({
@@ -929,7 +933,7 @@ client.on("interactionCreate", async interaction => {
         }
 
     } catch (error) {
-        console.error("Fehler bei der Ticket-Bearbeitung:", error);
+        diagnostics.error("Ticket-Bearbeitung", error, interaction);
 
         if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
             await interaction.reply({

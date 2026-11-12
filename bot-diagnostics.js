@@ -1,0 +1,4 @@
+﻿module.exports={
+ error(label,error,interaction){const item={time:new Date().toISOString(),pid:process.pid,label,code:error?.code||error?.name||'Error',message:String(error?.message||'Unbekannter Fehler').replace(/https?:\/\/\S+/g,'[URL entfernt]').slice(0,250)};if(interaction){item.interactionId=interaction.id;item.ageMs=Number.isFinite(interaction.createdTimestamp)?Date.now()-interaction.createdTimestamp:null;item.action=interaction.customId?.split(':').slice(-2).join(':');item.deferred=Boolean(interaction.deferred);item.replied=Boolean(interaction.replied);}console.error(JSON.stringify(item));},
+ acknowledged(interaction){console.log(JSON.stringify({time:new Date().toISOString(),event:'ticket_acknowledged',pid:process.pid,interactionId:interaction.id,ageMs:Number.isFinite(interaction.createdTimestamp)?Date.now()-interaction.createdTimestamp:null}));}
+};

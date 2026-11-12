@@ -2,7 +2,7 @@ const {EmbedBuilder,ActionRowBuilder,ButtonBuilder,ButtonStyle,ModalBuilder,Text
 const C=require('./config'),store=require('./store');
 function scope(){return (require('../registration-store').read().instanceId||'inactive').slice(0,12);}
 function id(action,...args){const value=`lja_hr:${scope()}:${action}${args.length?':'+args.join(':'):''}`;if(value.length>100)throw Error('Interaktionskennung zu lang.');return value;}
-function parse(value){const prefix=`lja_hr:${scope()}:`;return value?.startsWith(prefix)?value.slice(prefix.length).split(':'):null;}
+function parse(value){if(!value?.startsWith('lja_hr:'))return null;const prefix=`lja_hr:${scope()}:`;return value?.startsWith(prefix)?value.slice(prefix.length).split(':'):null;}
 const row=(...items)=>new ActionRowBuilder().addComponents(...items);
 const button=(action,label,style=ButtonStyle.Primary,...args)=>new ButtonBuilder().setCustomId(id(action,...args)).setLabel(label).setStyle(style);
 const card=(title,description)=>new EmbedBuilder().setColor(0xD4AF37).setAuthor({name:'LIBERTY JUSTICE ASSOCIATES'}).setTitle(title).setDescription(description||' ').setFooter({text:'Liberty Justice Associates | Mitarbeiterverwaltung'});

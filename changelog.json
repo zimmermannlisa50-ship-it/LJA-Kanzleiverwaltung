@@ -260,5 +260,16 @@
     "changed": [
       "Gemeinsame Anwaltsanfragen-Kategorie für neue und freigegebene Notfall-, Amtshaftungs- und Beratungstickets."
     ]
+  },
+  {
+    "id": "ticket-interaction-instance-routing",
+    "date": "2026-11-13",
+    "fixed": [
+      "Ticketmenü und Formulare eindeutig an Botinstanz gebunden; Konflikte mit älteren Instanzen abgegrenzt.",
+      "Formularbestätigung vor weiteren Prüfungen; abgelaufene Antworten werden nicht erneut beantwortet."
+    ],
+    "changed": [
+      "Fehlerdiagnose mit Zeitstempel und Antwortdauer, ohne Interaktionstokens."
+    ]
   }
 ]

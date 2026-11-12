@@ -1,6 +1,7 @@
 const {EmbedBuilder,ActionRowBuilder,ButtonBuilder,ButtonStyle,StringSelectMenuBuilder,ModalBuilder,TextInputBuilder,TextInputStyle,ChannelType}=require('discord.js');
 const fs=require('fs'),path=require('path');
 const publishChangelogs=require('./changelog');
+const ticketRouting=require('./ticket-routing')();
 const APPROVER='1485673349098111170';
 const ROLES={
 '1477932047665332338':'⚖️ Department of Justice',
@@ -23,7 +24,7 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  const save=s=>writeJson(file,s);
  const admin=i=>i.guildId==='1477731363082993665'&&hasRole(i.member,ADMIN_ROLE_IDS);
  const locks=new Set();
- function ticketPayload(){return {embeds:[embed('Liberty Justice Associates','Willkommen bei Liberty Justice Associates.\n\nBitte wähle die passende Ticketart für dein Anliegen:\n\n⚖️ Notfall / Strafverteidigung\n🏛️ Klage gegen Staat / Amtshaftung\n💬 Allgemeine Rechtsberatung\n📜 Verträge / Unternehmen\n💼 Bewerbungen\n🚩 Beschwerde\n⚡ Rollenanfrage')],components:[row(new StringSelectMenuBuilder().setCustomId('lja_ticket_type').setPlaceholder('Ticketart auswählen').addOptions([...Object.entries(TICKET_CATEGORIES).map(([value,c])=>({label:c.label,value,emoji:c.emoji})),{label:'Rollenanfrage',value:'rollen',emoji:'⚡'}]))]};}
+ function ticketPayload(){return {embeds:[embed('Liberty Justice Associates','Willkommen bei Liberty Justice Associates.\n\nBitte wähle die passende Ticketart für dein Anliegen:\n\n⚖️ Notfall / Strafverteidigung\n🏛️ Klage gegen Staat / Amtshaftung\n💬 Allgemeine Rechtsberatung\n📜 Verträge / Unternehmen\n💼 Bewerbungen\n🚩 Beschwerde\n⚡ Rollenanfrage')],components:[row(new StringSelectMenuBuilder().setCustomId(ticketRouting.menuId()).setPlaceholder('Ticketart auswählen').addOptions([...Object.entries(TICKET_CATEGORIES).map(([value,c])=>({label:c.label,value,emoji:c.emoji})),{label:'Rollenanfrage',value:'rollen',emoji:'⚡'}]))]};}
  async function publish(key,target){
  if(key==='changelog'){if(locks.has('changelog'))throw Error('Changelog wird bereits veröffentlicht.');locks.add('changelog');try{const record=await publishChangelogs(client,target||CHANNELS.changelog);const current=state();current.changelog=record;save(current);return;}finally{locks.delete('changelog');}}
  if(locks.has('publish:'+key))throw Error('Dieses Panel wird gerade aktualisiert.');locks.add('publish:'+key);
@@ -47,7 +48,7 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  const matches=m=>{
  if(m.author.id!==client.user.id)return false;
  if(old?.channel===channel.id&&old.ids?.includes(m.id))return true;
- if(m.components?.some(r=>r.components.some(c=>(componentIds[key]||[]).includes(c.customId))))return true;
+ if(m.components?.some(r=>r.components.some(c=>((componentIds[key]||[]).includes(c.customId)||(key==='tickets'&&ticketRouting.isMenu(c.customId))))))return true;
  if(payloads.some(p=>p.content&&p.content===m.content))return true;
  if(documentText&&split(documentText).includes(m.content))return true;
  if(documentText&&require('./document-panels').matches(key,m))return true;
