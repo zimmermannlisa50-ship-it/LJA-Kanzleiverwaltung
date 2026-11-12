@@ -61,14 +61,14 @@ const TICKET_CATEGORIES = {
     strafverteidigung: {
         label: "Notfall / Strafverteidigung",
         emoji: "⚖️",
-        categoryId: "1478006998137176065"
+        categoryId: "1478007088465838274"
     },
     klage: {
         label: "Klage gegen Staat / Amtshaftung",
         emoji: "🏛️",
         categoryId: "1478007088465838274"
     },
-    beratung: { label: "Allgemeine Rechtsberatung", emoji: "💬", categoryId: "1478007585784201351" },
+    beratung: { label: "Allgemeine Rechtsberatung", emoji: "💬", categoryId: "1478007088465838274" },
     vertraege: {
         label: "Verträge / Unternehmen",
         emoji: "📜",

@@ -5,7 +5,7 @@ module.exports=({client,deps,resolveLawyer,caseIndex})=>{
  const restore=list=>list.map(o=>({...o,allow:BigInt(o.allow),deny:BigInt(o.deny)}));
  async function assign(channel,ticket,member){
  if(!R.lawyer(member))throw Error('Nur Mitarbeiter mit Anwaltsrang dürfen Mandate übernehmen.');if(ticket.handlerId||ticket.closed||ticket.completed)throw Error('Dieses Ticket kann gerade nicht übernommen werden.');
- const forum=await resolveLawyer(member);const originalParent=channel.parentId,originalPermissions=snapshot(channel);const changed={...ticket,handlerId:member.id,lastHandlerId:member.id,waiting:false,originalCategoryId:ticket.originalCategoryId||originalParent,queuePermissions:ticket.queuePermissions||originalPermissions};
+ const forum=await resolveLawyer(member);const originalParent=channel.parentId,originalPermissions=snapshot(channel);const changed={...ticket,handlerId:member.id,lastHandlerId:member.id,waiting:false,originalCategoryId:C.QUEUES[ticket.categoryKey]||ticket.originalCategoryId||originalParent,queuePermissions:ticket.queuePermissions||originalPermissions};
  try{
  await channel.setParent(forum.parentId,{lockPermissions:false,reason:'Mandat an zuständigen Anwalt zuordnen'});
  const perms=R.caseOverwrites(channel.guild,client.user.id,[ticket.userId,member.id,...(ticket.extraUserIds||[])]);await channel.permissionOverwrites.set(perms,'Mandat: Mandant, zuständiger Anwalt, Kanzleileitung/Sekretariat und Zusatzfreigaben');
@@ -14,7 +14,7 @@ module.exports=({client,deps,resolveLawyer,caseIndex})=>{
  }
  async function release(channel,ticket,actor,waiting=false){
  const oldParent=channel.parentId,oldPerms=snapshot(channel);const updated={...ticket,handlerId:null,lastHandlerId:ticket.handlerId||ticket.lastHandlerId,waiting};
- const source=ticket.originalCategoryId||C.QUEUES[ticket.categoryKey];if(!source)throw Error('Ursprüngliche Ticketkategorie fehlt.');
+ const source=C.QUEUES[ticket.categoryKey]||ticket.originalCategoryId;if(!source)throw Error('Ursprüngliche Ticketkategorie fehlt.');
  const base=ticket.queuePermissions?restore(ticket.queuePermissions):R.overwrites(channel.guild,client.user.id,{personnel:false,extra:[ticket.userId]});
  for(const id of ticket.extraUserIds||[])if(!base.some(o=>o.id===id))base.push({id,allow:['ViewChannel','ReadMessageHistory','SendMessages','AttachFiles']});
  try{await channel.setParent(source,{lockPermissions:false,reason:'Mandat zur erneuten Übernahme freigeben'});await channel.permissionOverwrites.set(base,'Bisherige Rechte der Ticket-Warteschlange wiederherstellen');const all=deps.getTickets();all[ticket.channelId]=updated;deps.saveTickets(all);await caseIndex(updated);await deps.update(channel,updated);return updated;}

@@ -42,7 +42,7 @@
     "date": "2026-11-12",
     "title": "Changelogs",
     "changed": [
-      "Kurze Changelogs nach Hinzugefügt, Geändert und Behoben; Historie bleibt erhalten."
+      "Kurze Changelogs nach Änderungsart; Historie bleibt erhalten."
     ]
   },
   {
@@ -74,7 +74,7 @@
     "date": "2026-11-12",
     "title": "Tageschangelog",
     "changed": [
-      "Alle Änderungen eines Tages stehen gesammelt in einer Nachricht; Tageswechsel um 00:00 Uhr deutscher Zeit."
+      "Eine Nachricht je Tag; Tageswechsel um 00:00 Uhr deutscher Zeit."
     ]
   },
   {
@@ -90,7 +90,7 @@
     "date": "2026-11-12",
     "title": "Registrierung aktiv",
     "added": [
-      "IC-Pflichtregistrierung für neue Mitglieder; Ticketformulare übernehmen die Angaben."
+      "IC-Pflichtregistrierung für neue Mitglieder; Ticketangaben werden übernommen."
     ],
     "permissions": [
       "Bürgerbereiche nach Registrierung sichtbar; Regelwerk/Willkommen offen. 170 Bestandsmitglieder ausgenommen."
@@ -168,9 +168,9 @@
     "date": "2026-11-12",
     "title": "Mitarbeiterverwaltung",
     "added": [
-      "Personalakten, Mitarbeiterbereiche, Teamupdates, Einstellungen und Rangänderungen mit LJA-Namen sowie Lizenzprüfung.",
+      "Personalakten, Teamupdates, Einstellungen/Rangwechsel mit LJA-Namen und Lizenzprüfung.",
       "Werbespruch-Sammlung, Abmeldungen mit Übersicht und Sanktionen mit Fristberechnung.",
-      "Persönliche Anwaltsforen, automatische Mandatszuordnung/Rückgabe und serverweite Personenfreigabe."
+      "Anwaltsforen, Mandatszuordnung/Rückgabe und serverweite Zusatzfreigaben."
     ],
     "changed": [
       "Kleiderordnung und Positionsbeschreibungen erneuert; bestehende Mitarbeiter übernommen."
@@ -237,11 +237,11 @@
       "💬 Allgemeine Rechtsberatung und Bewerbungsblacklist mit Pflichtgrund, Rollenvergabe und Protokoll."
     ],
     "changed": [
-      "Anwaltsblöcke: Tickets unter dem Forum mit └; Freigabe setzt die Zuordnung zurück.",
+      "Anwaltsblöcke: übernommene Tickets mit └; Freigabe setzt die Zuordnung zurück.",
       "Bewerbungen: Status/Bearbeiter ohne Nummer, DOJ oder Sachverhalt; Rangwahl bei Einstellung."
     ],
     "permissions": [
-      "Mandate nur für Mandant, Anwalt, Leitung/Sekretariat und Gäste. Bewerbungsübernahme für Mitarbeiter; Personalentscheidungen geschützt."
+      "Mandate: Mandant, Anwalt, Leitung/Sekretariat und Gäste. Bewerbungsübernahme für Mitarbeiter; Personalentscheidungen geschützt."
     ],
     "fixed": [
       "Kurze Windows-Dateisperren beim Speichern abgefangen."
@@ -251,7 +251,14 @@
     "id": "existing-lawyer-area-on-takeover",
     "date": "2026-11-12",
     "fixed": [
-      "Übernahme nutzt den bestehenden Anwaltsbereich per Discord-ID, ohne neue Kategorie oder Umbenennung."
+      "Übernahme nutzt vorhandenen Anwaltsbereich per Discord-ID, ohne Neuanlage oder Umbenennung."
+    ]
+  },
+  {
+    "id": "shared-lawyer-request-category",
+    "date": "2026-11-12",
+    "changed": [
+      "Gemeinsame Anwaltsanfragen-Kategorie für neue und freigegebene Notfall-, Amtshaftungs- und Beratungstickets."
     ]
   }
 ]
