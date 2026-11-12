@@ -3,3 +3,6 @@ node_modules/
 # Lokale Betriebsdaten
 data/
 *.log
+
+# Lokale Betriebsfreigabe des Hauptbots
+runtime-authority.json

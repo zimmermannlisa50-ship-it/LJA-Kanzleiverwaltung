@@ -91,25 +91,25 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  }finally{locks.delete('publish:'+key);}}
  async function all(){const errors=[];for(const key of Object.keys(CHANNELS).filter(k=>k!=='changelog'))try{await publish(key);}catch(e){console.error(key,e);errors.push(key+': '+e.message);}if(errors.length)throw Error(errors.join('\n'));}
  async function sweep(){const s=state();for(const [id,p] of Object.entries(s.points||{})){if(p.expires>Date.now())continue;try{const c=await client.channels.fetch(CHANNELS.punkte);const m=await c.messages.fetch(p.message).catch(e=>{if(e.code===10008)return null;throw e;});if(m)await m.delete();const latest=state();delete latest.points[id];save(latest);}catch(e){console.error('Punkt löschen:',e);}}}
- async function chooseRole(i){await i.deferReply({ephemeral:true});return i.editReply({content:'Welche Rolle möchtest du anfragen?',components:[row(new StringSelectMenuBuilder().setCustomId('lja_role_select').setPlaceholder('Rolle auswählen').addOptions(Object.entries(ROLES).map(([value,label])=>({label,value}))))]});}
+ async function chooseRole(i){await i.deferReply({flags:64});return i.editReply({content:'Welche Rolle möchtest du anfragen?',components:[row(new StringSelectMenuBuilder().setCustomId('lja_role_select').setPlaceholder('Rolle auswählen').addOptions(Object.entries(ROLES).map(([value,label])=>({label,value}))))]});}
  client.on('interactionCreate',async i=>{try{
  if(i.isChatInputCommand()&&i.commandName==='bot-panel'){
- if(!admin(i))return i.reply({content:'Keine Berechtigung.',ephemeral:true});await i.deferReply({ephemeral:true});await publish('admin',i.channelId);return i.editReply('Botverwaltung veröffentlicht.');}
+ if(!admin(i))return i.reply({content:'Keine Berechtigung.',flags:64});await i.deferReply({flags:64});await publish('admin',i.channelId);return i.editReply('Botverwaltung veröffentlicht.');}
  if(i.customId?.startsWith('lja_admin_')){
- if(!admin(i))return i.reply({content:'Keine Berechtigung.',ephemeral:true});await i.deferReply({ephemeral:true});
+ if(!admin(i))return i.reply({content:'Keine Berechtigung.',flags:64});await i.deferReply({flags:64});
  if(i.customId==='lja_admin_publish')await publish(i.values[0]);else await all();
  if(i.customId==='lja_admin_restart'){await i.editReply('Panels aktualisiert. Bot wird neu verbunden.');await client.destroy();await client.login(process.env.DISCORD_TOKEN);return;}
  return i.editReply('Panels erfolgreich aktualisiert.');}
  if(i.customId==='lja_point'){
  if(i.channelId!==CHANNELS.punkte)return;
- if(locks.has('point:'+i.user.id))return i.reply({content:'Dein Punkt wird bereits erstellt.',ephemeral:true});locks.add('point:'+i.user.id);
- try{await i.deferReply({ephemeral:true});const s=state();s.points||={};if(s.points[i.user.id])return i.editReply('Du hast bereits einen aktiven Punkt.');
+ if(locks.has('point:'+i.user.id))return i.reply({content:'Dein Punkt wird bereits erstellt.',flags:64});locks.add('point:'+i.user.id);
+ try{await i.deferReply({flags:64});const s=state();s.points||={};if(s.points[i.user.id])return i.editReply('Du hast bereits einen aktiven Punkt.');
  const msg=await i.channel.send({content:`• <@${i.user.id}> — ${i.user.username.replace(/[@*_`~|<>]/g,'')}\nWird nach 3 Minuten gelöscht.`,allowedMentions:{users:[i.user.id]}});s.points[i.user.id]={message:msg.id,expires:Date.now()+180000};const latest=state();latest.points||={};latest.points[i.user.id]=s.points[i.user.id];save(latest);await i.editReply('Punkt erstellt.');}finally{locks.delete('point:'+i.user.id);}return;}
  if(i.customId==='lja_role_select'){
  const role=i.values[0];if(!ROLES[role])throw Error('Ungültige Rolle.');
  const modal=new ModalBuilder().setCustomId('lja_role_form_'+role).setTitle('Rollenanfrage');for(const [id,label]of [['first','IC-Vorname'],['last','IC-Nachname']])modal.addComponents(row(new TextInputBuilder().setCustomId(id).setLabel(label).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(50)));return await i.showModal(modal);}
  if(i.isModalSubmit()&&i.customId.startsWith('lja_role_form_')){
- const role=i.customId.slice('lja_role_form_'.length);if(!ROLES[role])throw Error('Ungültige Rolle.');await i.deferReply({ephemeral:true});
+ const role=i.customId.slice('lja_role_form_'.length);if(!ROLES[role])throw Error('Ungültige Rolle.');await i.deferReply({flags:64});
  const first=i.fields.getTextInputValue('first').trim(),last=i.fields.getTextInputValue('last').trim();if(!first||!last)throw Error('Bitte beide Namen ausfüllen.');
  const c=await i.guild.channels.fetch('1570462925402021920'); if(!c || c.type!==ChannelType.GuildText)throw Error('Der Rollenanfrage-Zielkanal muss ein Textkanal sein.');
  const m=await c.send({content:`<@&${APPROVER}>`,allowedMentions:{roles:[APPROVER]},embeds:[embed('⚡ Rollenanfrage',`**IC-Name:** ${first} ${last}\n**Discord:** <@${i.user.id}>\n**Discord-ID:** ${i.user.id}\n**Gewünschte Rolle:** ${ROLES[role]}\n**Status:** Offen`)],components:[row(button('lja_role_accept','ANNEHMEN',ButtonStyle.Success),button('lja_role_reject','ABLEHNEN',ButtonStyle.Danger))]});
@@ -118,7 +118,7 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  const modulePath=require.resolve('./role-decisions');delete require.cache[modulePath];
  return await require(modulePath)(i,{client,ROLES,state,save,locks,authorized:admin(i)||i.member.roles.cache.has(APPROVER)});
  }
- }catch(e){console.error('Panel-Interaktion:',e);const payload={content:'Aktion fehlgeschlagen: '+e.message,ephemeral:true};if(i.deferred||i.replied)await i.editReply({content:payload.content}).catch(()=>{});else await i.reply(payload).catch(()=>{});}});
+ }catch(e){require('./bot-diagnostics').error('Panel-Interaktion',e,i);if([10062,40060].includes(Number(e.code)))return;const payload={content:'Aktion fehlgeschlagen: '+e.message,flags:64};if(i.deferred||i.replied)await i.editReply({content:payload.content}).catch(()=>{});else await i.reply(payload).catch(()=>{});}});
  let timer;
  return {publish,chooseRole,async start(){await sweep();if(!timer){timer=setInterval(()=>sweep().catch(console.error),15000);timer.unref();}if(process.env.LJA_SKIP_PANEL_REFRESH!=='1'){await all();await publish('changelog');const s=state();if(s.admin)await publish('admin',s.admin.channel);}}};
 };

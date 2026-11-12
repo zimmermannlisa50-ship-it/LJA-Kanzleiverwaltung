@@ -278,5 +278,13 @@
     "fixed": [
       "Zwei bestehende Bewerbungen aus abweichendem Datenstand wiederhergestellt und ihre Buttons an die aktive Instanz gebunden."
     ]
+  },
+  {
+    "id": "exclusive-authorized-runtime",
+    "date": "2026-11-13",
+    "fixed": [
+      "Botstart auf den freigegebenen Rechner und bestehenden Datenbestand begrenzt; doppelte lokale Starts gesperrt.",
+      "Fehlerhafte Bewerbung aus weiterem Datenstand übernommen; aktive Ticketbuttons wiederhergestellt."
+    ]
   }
 ]

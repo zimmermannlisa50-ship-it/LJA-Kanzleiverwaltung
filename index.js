@@ -1,4 +1,6 @@
 require("dotenv").config();
+const runtime = require("./runtime-guard");
+try { runtime.assertAuthorizedRuntime(); } catch (error) { console.error(error.message); process.exit(1); }
 
 const {
     Client,
@@ -334,11 +336,11 @@ client.on("interactionCreate", async interaction => {
                 if (!hasRole(interaction.member, ADMIN_ROLE_IDS)) {
                     return interaction.reply({
                         content: "Du bist nicht berechtigt, dieses Panel zu erstellen.",
-                        ephemeral: true
+                        flags: 64
                     });
                 }
 
-                await interaction.deferReply({ ephemeral: true });
+                await interaction.deferReply({ flags: 64 });
                 await panels.publish("tickets");
                 await interaction.editReply("Ticket-Panel ver?ffentlicht.");
             }
@@ -352,7 +354,7 @@ client.on("interactionCreate", async interaction => {
         if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
             await interaction.reply({
                 content: "Es ist ein Fehler aufgetreten. Bitte versuche es erneut.",
-                ephemeral: true
+                flags: 64
             }).catch(() => {});
         }
     }
@@ -384,7 +386,7 @@ client.on("interactionCreate", async interaction => {
             if (!category) {
                 return interaction.reply({
                     content: "Diese Ticketkategorie ist ungültig.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -577,7 +579,7 @@ client.on("interactionCreate", async interaction => {
         if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
             await interaction.reply({
                 content: "Das Ticket konnte leider nicht erstellt werden.",
-                ephemeral: true
+                flags: 64
             }).catch(() => {});
         } else if (interaction.deferred && !interaction.replied) {
             await interaction.editReply({
@@ -621,21 +623,21 @@ client.on("interactionCreate", async interaction => {
             if (!isHandler(interaction.member)) {
                 return interaction.reply({
                     content: "Du bist nicht berechtigt, Tickets zu übernehmen.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
             if (ticket.handlerId) {
                 return interaction.reply({
                     content: "Dieses Ticket wurde bereits übernommen.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
             if (ticket.completed || ticket.closed) {
                 return interaction.reply({
                     content: "Dieses Ticket ist bereits abgeschlossen.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -655,7 +657,7 @@ client.on("interactionCreate", async interaction => {
 
             return interaction.editReply({
                 content: `Du hast Ticket **${ticket.ticketNumber}** übernommen.`,
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -668,14 +670,14 @@ client.on("interactionCreate", async interaction => {
             if (!isHandler(interaction.member)) {
                 return interaction.reply({
                     content: "Du bist nicht berechtigt, Tickets freizugeben.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
             if (!ticket.handlerId) {
                 return interaction.reply({
                     content: "Dieses Ticket ist derzeit nicht übernommen.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -685,7 +687,7 @@ client.on("interactionCreate", async interaction => {
             ) {
                 return interaction.reply({
                     content: "Nur der zuständige Bearbeiter oder die Kanzleileitung darf dieses Ticket freigeben.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -705,7 +707,7 @@ client.on("interactionCreate", async interaction => {
 
             return interaction.editReply({
                 content: "Das Ticket wurde wieder freigegeben.",
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -718,7 +720,7 @@ client.on("interactionCreate", async interaction => {
             if (!isHandler(interaction.member)) {
                 return interaction.reply({
                     content: "Du bist nicht berechtigt, diesen Vorgang durchzuführen.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -728,7 +730,7 @@ client.on("interactionCreate", async interaction => {
             ) {
                 return interaction.reply({
                     content: "Nur der zuständige Bearbeiter oder die Kanzleileitung darf diesen Vorgang durchführen.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -748,7 +750,7 @@ client.on("interactionCreate", async interaction => {
 
             return interaction.editReply({
                 content: "Das Ticket wurde zurückgestellt und wartet auf eine weitere Bearbeitung.",
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -761,7 +763,7 @@ client.on("interactionCreate", async interaction => {
             if (!isLeadership(interaction.member)) {
                 return interaction.reply({
                     content: "Nur die Kanzleileitung darf ein DOJ-Aktenzeichen hinterlegen.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -793,7 +795,7 @@ client.on("interactionCreate", async interaction => {
             if (!isHandler(interaction.member)) {
                 return interaction.reply({
                     content: "Du bist nicht berechtigt, Tickets abzuschließen.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -803,14 +805,14 @@ client.on("interactionCreate", async interaction => {
             ) {
                 return interaction.reply({
                     content: "Nur der zuständige Bearbeiter oder die Kanzleileitung darf dieses Ticket abschließen.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
             if (ticket.completed) {
                 return interaction.reply({
                     content: "Dieses Ticket ist bereits als erledigt markiert.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -835,7 +837,7 @@ client.on("interactionCreate", async interaction => {
 
             return interaction.editReply({
                 content: "Das Ticket wurde als erledigt markiert.",
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -851,7 +853,7 @@ client.on("interactionCreate", async interaction => {
             if (!isHandler(interaction.member)) {
                 return interaction.reply({
                     content: "Du bist nicht berechtigt, diese Auswahl vorzunehmen.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -861,14 +863,14 @@ client.on("interactionCreate", async interaction => {
             ) {
                 return interaction.reply({
                     content: "Nur der zuständige Bearbeiter oder die Kanzleileitung darf diese Auswahl vornehmen.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
             if (!ticket.completed) {
                 return interaction.reply({
                     content: "Das Ticket muss zuerst als erledigt markiert werden.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -889,7 +891,7 @@ client.on("interactionCreate", async interaction => {
 
             return interaction.reply({
                 content: `Abschlussart gespeichert: **${ticket.paymentType}**`,
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -905,7 +907,7 @@ client.on("interactionCreate", async interaction => {
             if (!isLeadership(interaction.member)) {
                 return interaction.reply({
                     content: "Nur die Kanzleileitung darf ein DOJ-Aktenzeichen hinterlegen.",
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -928,7 +930,7 @@ client.on("interactionCreate", async interaction => {
 
             return interaction.reply({
                 content: `DOJ-Aktenzeichen **${caseNumber}** wurde gespeichert.`,
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -938,7 +940,7 @@ client.on("interactionCreate", async interaction => {
         if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
             await interaction.reply({
                 content: "Bei der Bearbeitung ist ein Fehler aufgetreten.",
-                ephemeral: true
+                flags: 64
             }).catch(() => {});
         }
     }
@@ -966,4 +968,4 @@ if (!TOKEN) {
 }
 
 client.on("error", error => console.error("Discord-Clientfehler:", error.message));
-client.login(TOKEN).catch(error => { console.error("Bot-Login fehlgeschlagen:", error.message); process.exitCode = 1; });
+runtime.acquire().then(() => client.login(TOKEN)).catch(error => { diagnostics.error("Botstart", error); process.exitCode = 1; });
