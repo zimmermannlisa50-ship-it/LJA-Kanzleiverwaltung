@@ -24,3 +24,6 @@ Changelogs kurz halten: je Abschnitt höchstens wenige kurze Stichpunkte. Nur be
 Rollenentscheidungen liegen in role-decisions.js und werden bei jedem Klick neu geladen. Änderungen daran benötigen künftig keinen Botneustart. LJA_SKIP_PANEL_REFRESH=1 überspringt die Panelveröffentlichung beim Start. Prüfung: node role-decisions.test.js.
 
 
+
+Tageschangelogs: Alle Einträge mit gleichem Datum werden zu einer einzigen Discordnachricht zusammengefasst. Neue Änderungen desselben Tages bearbeiten diese Nachricht. Ab 00:00 Uhr Europe/Berlin (inklusive Sommerzeit) erhält die nächste Änderung das neue Tagesdatum; ohne Änderungen wird keine leere Nachricht erstellt. Beim Ergänzen in changelog.json das Datum über require('./changelog').berlinDate() bestimmen. node update-changelogs.js gleicht nur Changelogs ab und fasst frühere Einzeleinträge zusammen. Prüfung: node changelog.test.js.
+

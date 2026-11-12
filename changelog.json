@@ -68,5 +68,13 @@
     "changed": [
       "Neue Bewerbungstickets werden unter Mitarbeiterverwaltung erstellt."
     ]
+  },
+  {
+    "id": "daily-changelogs",
+    "date": "2026-11-12",
+    "title": "Tageschangelog",
+    "changed": [
+      "Alle Änderungen eines Tages stehen gesammelt in einer Nachricht; Tageswechsel um 00:00 Uhr deutscher Zeit."
+    ]
   }
 ]
