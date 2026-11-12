@@ -14,3 +14,5 @@ Gezielte Aktualisierung bestehender, lokal gespeicherter Tickets: `node update-t
 
 Prüfungen: `node ticket-workflow.test.js`, `node ticket-close.test.js`, `node ticket-transcript.test.js`.
 
+
+IC-Nutzerprofil: Bei jedem erfolgreich erstellten Ticket werden IC-Vorname, IC-Nachname und IC-Telefonnummer aus dem Formular im Profil der Discord-ID angelegt oder aktualisiert. Das Formular fragt die Felder weiterhin ab und füllt gespeicherte Angaben vor. Frühere Tickets und Transkripte behalten ihre damaligen Angaben. Bestehende Registrierungs- und Regelannahmedaten bleiben erhalten; bei Bestandsmitgliedern wird durch die Ticketangaben keine Regelannahme erfunden. Prüfung: node ticket-profile.test.js.

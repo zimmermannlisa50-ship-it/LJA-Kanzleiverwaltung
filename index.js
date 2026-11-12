@@ -449,6 +449,7 @@ client.on("interactionCreate", async interaction => {
             const firstName = interaction.fields.getTextInputValue("firstName").trim();
             const lastName = interaction.fields.getTextInputValue("lastName").trim();
             const phone = interaction.fields.getTextInputValue("phone").trim();
+            require("./ticket-profile").validate({ firstName, lastName, phone });
             const subject = categoryKey === "bewerbung" ? "Bewerbung" : interaction.fields.getTextInputValue("subject").trim();
             const facts = categoryKey === "bewerbung" ? "Bewerbung eingegangen." : interaction.fields.getTextInputValue("facts").trim();
 
@@ -545,6 +546,7 @@ client.on("interactionCreate", async interaction => {
             const allTickets = getTicketData();
             allTickets[ticketChannel.id] = ticket;
             saveTicketData(allTickets);
+            require("./ticket-profile").save(registrationStore, interaction.user.id, { firstName, lastName, phone });
 
             await interaction.editReply({
                 content:
@@ -949,6 +951,7 @@ if (!TOKEN) {
 
 client.on("error", error => console.error("Discord-Clientfehler:", error.message));
 client.login(TOKEN).catch(error => { console.error("Bot-Login fehlgeschlagen:", error.message); process.exitCode = 1; });
+
 
 
 

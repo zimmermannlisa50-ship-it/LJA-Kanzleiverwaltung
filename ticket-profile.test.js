@@ -1,0 +1,7 @@
+﻿const assert=require('node:assert/strict'),profiles=require('./ticket-profile');
+let data={active:true,existingIds:['old'],profiles:{registered:{firstName:'Alt',lastName:'Name',phone:'111',registeredAt:'2026-01-01',rulesAcceptedAt:'2026-01-01'},other:{firstName:'Andere',lastName:'Person',phone:'333'}}};
+const store={read:()=>structuredClone(data),write:s=>data=structuredClone(s)};
+profiles.save(store,'old',{firstName:' Max ',lastName:' Muster ',phone:' 555-1234 '});assert.equal(data.profiles.old.firstName,'Max');assert.equal(data.profiles.old.phone,'555-1234');assert(!data.profiles.old.rulesAcceptedAt);assert(data.existingIds.includes('old'));
+profiles.save(store,'registered',{firstName:'Neu',lastName:'Geändert',phone:'222'});assert.equal(data.profiles.registered.firstName,'Neu');assert.equal(data.profiles.registered.lastName,'Geändert');assert.equal(data.profiles.registered.phone,'222');assert.equal(data.profiles.registered.rulesAcceptedAt,'2026-01-01');assert.equal(data.profiles.registered.registeredAt,'2026-01-01');assert.equal(data.profiles.other.phone,'333');assert(data.active);
+const before=structuredClone(data);assert.throws(()=>profiles.save(store,'registered',{firstName:' ',lastName:'Test',phone:'111'}));assert.deepEqual(data,before);
+console.log('OK: Bestandsprofil angelegt, Änderungen übernommen, Regelannahme und fremde Profile erhalten; leere Pflichtangaben abgelehnt.');

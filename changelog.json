@@ -138,5 +138,13 @@
     "changed": [
       "HTML-Transkripte werden beim Schließen im zentralen Transkriptkanal gespeichert."
     ]
+  },
+  {
+    "id": "ticket-profile-updates",
+    "date": "2026-11-12",
+    "title": "IC-Nutzerprofile",
+    "changed": [
+      "Beim Ticket-Erstellen werden IC-Name und Telefonnummer im Nutzerprofil angelegt oder aktualisiert und beim nächsten Ticket vorausgefüllt."
+    ]
   }
 ]
