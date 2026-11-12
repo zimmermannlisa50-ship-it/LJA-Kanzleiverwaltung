@@ -203,5 +203,12 @@
     "permissions": [
       "Mitarbeiter können ihre eigene Akte lesen und antworten; keine neuen Posts oder Moderationsrechte."
     ]
+  },
+  {
+    "id": "employee-roster",
+    "date": "2026-11-12",
+    "added": [
+      "Automatische Mitarbeiterübersicht nach Rang mit Einstellungsdatum; fehlende Daten auf heute ergänzt."
+    ]
   }
 ]
