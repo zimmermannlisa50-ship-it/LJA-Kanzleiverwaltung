@@ -13,7 +13,8 @@ module.exports=async function publishChangelogs(client,channelId){
  const channel=await client.channels.fetch(channelId);const existing=new Map();let before;
  while(true){const batch=await channel.messages.fetch({limit:100,...(before?{before}:{})});if(!batch.size)break;for(const message of batch.values())if(message.author.id===client.user.id)for(const embed of message.embeds||[])if(embed.footer?.text)existing.set(embed.footer.text,message.id);if(batch.size<100)break;before=batch.last().id;}
  const ids=[];
- for(const entry of entries)for(const embed of render(entry)){const marker=embed.data.footer.text;if(existing.has(marker)){ids.push(existing.get(marker));continue;}const message=await channel.send({embeds:[embed],allowedMentions:{parse:[]}});ids.push(message.id);existing.set(marker,message.id);}
+ for(const entry of entries)for(const embed of render(entry)){const marker=embed.data.footer.text;if(existing.has(marker)){const id=existing.get(marker);const message=await channel.messages.fetch(id);const current=message.embeds[0];if(current?.description!==embed.data.description||current?.title!==embed.data.title)await message.edit({embeds:[embed],allowedMentions:{parse:[]}});ids.push(id);continue;}const message=await channel.send({embeds:[embed],allowedMentions:{parse:[]}});ids.push(message.id);existing.set(marker,message.id);}
  return {channel:channel.id,ids};
 };
 module.exports.render=render;
+
