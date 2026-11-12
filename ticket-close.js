@@ -1,4 +1,4 @@
-﻿const {ActionRowBuilder,ButtonBuilder,ButtonStyle}=require('discord.js');
+const {ActionRowBuilder,ButtonBuilder,ButtonStyle}=require('discord.js');
 const crypto=require('crypto');
 const state=require('./ticket-close-state');
 const ARCHIVE='1484218994608312553';
@@ -14,7 +14,7 @@ module.exports=async function closeTicket(i,d){
  const [action,nonce]=i.customId.slice(prefix.length).split(':');if(!['ask','confirm','cancel'].includes(action))return;
  try{
  const ticket=d.getTickets()[i.channelId];if(!ticket)return await i.reply({content:'Ticketdaten fehlen. Bitte die Kanzleileitung informieren.',flags:64});
- const authorized=i.user.id===ticket.userId||i.user.id===ticket.handlerId||d.isLeadership(i.member);
+ const authorized=ticket.categoryKey==='bewerbung'?Boolean(d.isPersonnel?.(i.member)):i.user.id===ticket.userId||i.user.id===ticket.handlerId||d.isLeadership(i.member);
  if(!authorized)return await i.reply({content:'Du bist nicht berechtigt, dieses Ticket zu schließen.',flags:64});
  if(action==='ask'){
  const now=Date.now();for(const [key,c]of state.confirmations)if(c.expires<now)state.confirmations.delete(key);
@@ -49,6 +49,7 @@ module.exports=async function closeTicket(i,d){
  }catch(error){await i.channel.permissionOverwrites.edit(ticket.userId,previous,'Schließen fehlgeschlagen: Schreibrechte wiederherstellen');throw error;}
  closed.archiveChannelId=archive.id;closed.archiveMessageId=uploaded.id;closed.archiveUrl=uploaded.url;
  const latest=d.getTickets();latest[i.channelId]=closed;d.saveTickets(latest);
+ if(d.onClosed)await d.onClosed(closed).catch(error=>console.error("Mandatsabschluss:",error.message));
  await remove(i,d,closed);state.confirmations.delete(nonce);
  }finally{state.locks.delete(i.channelId);}
  }catch(e){console.error('Ticket schließen:',e.message);const archived=d.getTickets()[i.channelId]?.archiveMessageId;const content=archived?'Das Transkript ist gesichert, aber der Ticketkanal konnte nicht gelöscht werden: '+e.message+' Bitte erneut „Ticket schließen“ verwenden.':'Schließen fehlgeschlagen: '+e.message+' Bitte erneut versuchen.';if(i.deferred||i.replied)await i.editReply({content}).catch(()=>{});else await i.reply({content,flags:64}).catch(()=>{});}

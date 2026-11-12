@@ -72,6 +72,7 @@ function buildTicketEmbed(ticket) {
 // ==========================================
 
 function buildTicketComponents(ticket) {
+    if (ticket.categoryKey === "bewerbung" && !ticket.closed) return require("./personnel/ui").application(ticket);
     if (ticket.closed) {
         return [];
     }
@@ -123,6 +124,10 @@ function buildTicketComponents(ticket) {
     );
 
     rows.push(firstRow, secondRow);
+    if (["strafverteidigung", "klage"].includes(ticket.categoryKey)) {
+        const hr = require("./personnel/ui");
+        rows.push(hr.row(hr.button("guestAdd", "PERSON HINZUFÜGEN", hr.ButtonStyle.Secondary, ticket.channelId), hr.button("guestRemove", "PERSON ENTFERNEN", hr.ButtonStyle.Secondary, ticket.channelId)));
+    }
 
     if (ticket.completed && !ticket.paymentType) {
         const thirdRow = new ActionRowBuilder().addComponents(

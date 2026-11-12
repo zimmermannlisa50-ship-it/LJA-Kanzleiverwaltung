@@ -162,5 +162,22 @@
     "added": [
       "Automatische IC-Spitznamen bei Registrierung und Ticketangaben; 16 ausgewählte Mitarbeiterrollen und Bots bleiben ausgenommen."
     ]
+  },
+  {
+    "id": "personnel-management-v1",
+    "date": "2026-11-12",
+    "title": "Mitarbeiterverwaltung",
+    "added": [
+      "Personalakten, Mitarbeiterbereiche, Teamupdates, Einstellungen und Rangänderungen mit LJA-Namen sowie Lizenzprüfung.",
+      "Werbespruch-Sammlung, Abmeldungen mit Übersicht und Sanktionen mit Fristberechnung.",
+      "Persönliche Anwaltsforen, automatische Mandatszuordnung/Rückgabe und serverweite Personenfreigabe."
+    ],
+    "changed": [
+      "Kleiderordnung und Positionsbeschreibungen erneuert; bestehende Mitarbeiter übernommen."
+    ],
+    "permissions": [
+      "Personalaktionen nur für die freigegebenen acht Personalrollen; Mitarbeiterbereiche nur für die jeweilige Person und Personalverwaltung.",
+      "Zugeordnete Mandate sind für Mandant, Bearbeiter, Leitung/Partner und ausdrücklich hinzugefügte Personen sichtbar."
+    ]
   }
 ]

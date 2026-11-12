@@ -1,4 +1,4 @@
-﻿require("dotenv").config();
+require("dotenv").config();
 
 const {
     Client,
@@ -154,11 +154,11 @@ function hasRole(member, roleIds) {
 }
 
 function isHandler(member) {
-    return hasRole(member, HANDLER_ROLE_IDS);
+    return hasRole(member, HANDLER_ROLE_IDS) || require("./personnel/rules").lawyer(member);
 }
 
 function isLeadership(member) {
-    return member.roles.cache.has(LEADERSHIP_ROLE_ID);
+    return member.roles.cache.has(LEADERSHIP_ROLE_ID) || require("./personnel/rules").has(member, require("./personnel/config").LEADS);
 }
 
 function escapeHtml(value) {
@@ -196,6 +196,7 @@ async function updateTicketMessage(channel, ticket) {
             embeds: [buildTicketEmbed(ticket)],
             components: buildTicketComponents(ticket)
         });
+        if (["strafverteidigung", "klage"].includes(ticket.categoryKey)) await personnel.caseIndex(ticket);
     } catch (error) {
         console.error("Ticket-Nachricht konnte nicht aktualisiert werden:", error);
     }
@@ -243,6 +244,7 @@ const client = new Client({
 
 const panels = require("./panels")({ client, hasRole, ADMIN_ROLE_IDS, TICKET_CATEGORIES, readJson, writeJson, DATA_DIR });
 const registrationStore = require("./registration-store");
+const personnel = require("./personnel")(client, { getTickets: getTicketData, saveTickets: saveTicketData, update: updateTicketMessage });
 client.on("guildMemberAdd", async member => {
     if (member.guild.id !== GUILD_ID || member.user.bot) return;
     try {
@@ -263,6 +265,7 @@ client.on("interactionCreate", async interaction => {
     await require(modulePath).handle(client, interaction);
 });
 const commands = [
+    new SlashCommandBuilder().setName("personal-panel").setDescription("Aktualisiert die interne Personalverwaltung.").toJSON(),
     new SlashCommandBuilder().setName("bot-panel").setDescription("?ffnet die Kanzlei-Botverwaltung.").toJSON(),
     new SlashCommandBuilder()
         .setName("ticket-panel")
@@ -301,9 +304,10 @@ client.once("clientReady", async () => {
     ensureStorage();
     await registerCommands();
     await panels.start().catch(console.error);
+    await personnel.start().catch(error => console.error("Personalverwaltung:", error.message));
     if (registrationStore.read().active) {
         const guild = await client.guilds.fetch(GUILD_ID);
-        await guild.members.fetch();
+        if (guild.members.cache.size < guild.memberCount) await guild.members.fetch();
         for (const member of guild.members.cache.values()) await require("./registration").invite(member);
     }
 });
@@ -414,7 +418,7 @@ client.on("interactionCreate", async interaction => {
 
             const phone = new TextInputBuilder().setCustomId("phone").setLabel("IC-Telefonnummer").setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(50);
             const savedProfile = registrationStore.profile(interaction.user.id);
-            if (savedProfile) { firstName.setValue(savedProfile.firstName); lastName.setValue(savedProfile.lastName); phone.setValue(savedProfile.phone); }
+            if (savedProfile) { if (savedProfile.firstName) firstName.setValue(savedProfile.firstName); if (savedProfile.lastName) lastName.setValue(savedProfile.lastName); if (savedProfile.phone) phone.setValue(savedProfile.phone); }
             const inputs = categoryKey === "bewerbung" ? [firstName, lastName, phone] : [firstName, lastName, phone, subject, facts];
             modal.addComponents(...inputs.map(input => new ActionRowBuilder().addComponents(input)));
             await interaction.showModal(modal);
@@ -466,7 +470,7 @@ client.on("interactionCreate", async interaction => {
                 name: channelName,
                 type: ChannelType.GuildText,
                 parent: category.categoryId,
-                permissionOverwrites: [
+                permissionOverwrites: categoryKey === "bewerbung" ? personnel.applicationOverwrites(interaction.guild, interaction.user.id) : [
                     {
                         id: interaction.guild.roles.everyone.id,
                         deny: ["ViewChannel"]
@@ -548,6 +552,7 @@ client.on("interactionCreate", async interaction => {
             saveTicketData(allTickets);
             require("./ticket-profile").save(registrationStore, interaction.user.id, { firstName, lastName, phone });
             const nickname = await require("./nicknames").sync(interaction.member, { firstName, lastName });
+            await personnel.profileChanged(interaction.member);
 
             await interaction.editReply({
                 content:
@@ -594,12 +599,15 @@ client.on("interactionCreate", async interaction => {
         const ticket = ticketData[interaction.channelId];
 
         if (!ticket) return;
+        if (ticket.categoryKey === "bewerbung" && !personnel.allowed(interaction.member)) return await interaction.reply({content: "Diese Aktion ist nur für die Personalverwaltung erlaubt.", flags: 64});
         if (ticket.closed) return await interaction.reply({content: "Dieses Ticket ist bereits geschlossen.", flags: 64});
         if (require("./ticket-close-state").locks.has(interaction.channelId)) return await interaction.reply({content: "Dieses Ticket wird gerade geschlossen.", flags: 64});
 
         // ==================================
         // TICKET ÜBERNEHMEN
         // ==================================
+
+        if (["strafverteidigung", "klage"].includes(ticket.categoryKey) && ["lja_takeover", "lja_release", "lja_wait"].includes(customId)) return await personnel.handleAssignment(interaction, ticket);
 
         if (customId === "lja_takeover") {
 
@@ -938,7 +946,7 @@ client.on("interactionCreate", async interaction => {
         owner: registrationStore.read().instanceId || "local",
         getTickets: getTicketData, saveTickets: saveTicketData, isLeadership,
         update: updateTicketMessage, transcript: createHtmlTranscript, addEvent: addTicketEvent,
-        workflow: ticketWorkflow
+        workflow: ticketWorkflow, isPersonnel: personnel.allowed, onClosed: personnel.caseIndex
     });
 });
 // ==========================================
@@ -952,13 +960,3 @@ if (!TOKEN) {
 
 client.on("error", error => console.error("Discord-Clientfehler:", error.message));
 client.login(TOKEN).catch(error => { console.error("Bot-Login fehlgeschlagen:", error.message); process.exitCode = 1; });
-
-
-
-
-
-
-
-
-
-

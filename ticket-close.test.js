@@ -1,4 +1,4 @@
-﻿const assert=require('node:assert/strict'),close=require('./ticket-close'),state=require('./ticket-close-state'),workflow=require('./ticket-workflow');
+const assert=require('node:assert/strict'),close=require('./ticket-close'),state=require('./ticket-close-state'),workflow=require('./ticket-workflow');
 function fixture(){state.confirmations.clear();state.locks.clear();let tickets={c:{categoryKey:'klage',ticketNumber:'0001',userId:'u',firstName:'Max',lastName:'Muster',events:[]}},transcripts=0,uploads=0,deletes=0;const permissions=[];
 const channel={id:'c',name:'test',delete:async()=>{assert(uploads>0,'Nur nach erfolgreichem Upload löschen');assert(tickets.c.closed);deletes++;},permissionOverwrites:{cache:new Map([['u',{allow:{has:f=>['SendMessages','AttachFiles'].includes(f)},deny:{has:()=>false}}]]),edit:async(_,value)=>permissions.push(value)},send:async()=>{throw Error('HTML darf nicht im Ticket gepostet werden');}};
 const d={owner:'instance',workflow,getTickets:()=>structuredClone(tickets),saveTickets:s=>tickets=s,isLeadership:()=>false,update:async()=>{},addEvent:(t,event,userId)=>t.events.push({event,userId}),transcript:async()=>{transcripts++;return 'html';}};
@@ -16,8 +16,6 @@ f=fixture();await close(f.i,f.d);f.i.customId=action(f,0);f.archive.send=async()
 f=fixture();await close(f.i,f.d);f.i.customId=action(f,0);const originalDelete=f.i.channel.delete;f.i.channel.delete=async()=>{throw Error('Kanal kann nicht gelöscht werden');};await close(f.i,f.d);assert(f.ticket.closed);assert(!f.ticket.deletedAt);assert.equal(f.uploads,1);f.i.channel.delete=originalDelete;const originalFetch=f.archive.messages.fetch;f.archive.messages.fetch=async()=>({author:{id:"bot"},attachments:new Map()});await close(f.i,f.d);assert.equal(f.deletes,0);assert.equal(f.uploads,1);f.archive.messages.fetch=originalFetch;await close(f.i,f.d);assert.equal(f.uploads,1);assert.equal(f.deletes,1);assert(f.ticket.deletedAt);
 f=fixture();f.i.user.id='other';await close(f.i,f.d);assert.equal(f.transcripts,0);assert(!f.i.response.components);
 f=fixture();await close(f.i,f.d);f.i.customId=action(f,0);let resolve;f.d.transcript=async()=>new Promise(r=>resolve=r);const first=close(f.i,f.d);await new Promise(setImmediate);let response;await close({...f.i,reply:async p=>{response=p;}},f.d);assert(response.content.includes('bereits'));resolve('html');await first;assert.equal(f.uploads,1);
+f=fixture();const previousGet=f.d.getTickets;f.d.getTickets=()=>({c:{...previousGet().c,categoryKey:'bewerbung'}});f.d.isPersonnel=()=>false;await close(f.i,f.d);assert(!f.i.response.components);assert.equal(f.deletes,0);f.d.isPersonnel=()=>true;await close(f.i,f.d);assert(f.i.response.components);
 console.log('OK: Bestätigung, Abbruch, Berechtigungen, gefälschte Bestätigung, Doppelklick und Transkriptfehler geprüft.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
-
-
-

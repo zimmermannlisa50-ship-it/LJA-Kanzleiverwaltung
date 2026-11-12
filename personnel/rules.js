@@ -1,0 +1,18 @@
+const C=require('./config');
+const {PermissionsBitField:P}=require('discord.js');
+const has=(m,roles)=>roles.some(id=>m.roles.cache.has(id));
+const hr=m=>Boolean(m&&!m.user?.bot&&has(m,C.HR));
+const employee=m=>Boolean(m&&!m.user?.bot&&m.roles.cache.has(C.EMPLOYEE));
+const lawyer=m=>employee(m)&&has(m,C.LAWYERS);
+const rank=m=>C.RANKS.find(r=>m.roles.cache.has(r[0]))?.[0]||null;
+function small(text){const normal='abcdefghijklmnopqrstuvwxyz',tiny='ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ';return [...text.toLowerCase()].map(c=>normal.includes(c)?[...tiny][normal.indexOf(c)]:c).join('');}
+function iso(value){if(!/^\d{2}\.\d{2}\.\d{4}$/.test(value))throw Error('Datum bitte als TT.MM.JJJJ eingeben.');const [d,m,y]=value.split('.').map(Number);const result=new Date(Date.UTC(y,m-1,d));if(result.getUTCFullYear()!==y||result.getUTCMonth()!==m-1||result.getUTCDate()!==d)throw Error('Ungültiges Datum.');return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+const german=value=>value?.split('-').reverse().join('.')||'Nicht hinterlegt';
+const today=(now=new Date())=>require('../changelog').berlinDate(now);
+const days=(a,b)=>Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/86400000);
+function absence(start,end,now=today()){const a=iso(start),b=iso(end);if(a>b||b<now)throw Error('Das Ende muss nach dem Beginn und mindestens am heutigen Tag liegen.');return {start:a,end:b,duration:days(a,b)+1};}
+function fine(base,due,now=Date.now()){const overdueDays=Math.floor(Math.max(0,now-due)/86400000);return {overdueDays,increase:Math.round(base*0.1*overdueDays),total:base+Math.round(base*0.1*overdueDays)};}
+function serial(value){const code=value.trim().toUpperCase();if(!/^RR-[A-Z0-9]{5}-[A-Z0-9]{4}$/.test(code))throw Error('Seriennummer muss RR-XXXXX-XXXX entsprechen (Großbuchstaben/Ziffern).');return code;}
+function money(value){const amount=Number(value.replace(/[.$€\s]/g,'').replace(',','.'));if(!Number.isFinite(amount)||amount<=0||amount>1000000000)throw Error('Bitte einen gültigen positiven Betrag eingeben.');return Math.round(amount);}
+function overwrites(guild,bot,{viewer=null,personnel=true,staff=false,extra=[]}={}){const list=[{id:guild.id,deny:['ViewChannel']},{id:bot,allow:['ViewChannel','SendMessages','ReadMessageHistory','ManageChannels','ManageThreads','AttachFiles','EmbedLinks']}];for(const id of personnel?C.HR:C.LEADS)list.push({id,allow:['ViewChannel','SendMessages','ReadMessageHistory','AttachFiles','EmbedLinks','SendMessagesInThreads','ManageThreads']});if(staff)list.push({id:C.EMPLOYEE,allow:['ViewChannel','ReadMessageHistory'],deny:['SendMessages','SendMessagesInThreads','CreatePublicThreads','CreatePrivateThreads']});if(viewer)list.push({id:viewer,allow:['ViewChannel','ReadMessageHistory'],deny:['SendMessages','SendMessagesInThreads','CreatePublicThreads','CreatePrivateThreads']});for(const id of extra)list.push({id,allow:['ViewChannel','ReadMessageHistory','SendMessages','AttachFiles','EmbedLinks']});const byId=new Map();for(const o of list){const existing=byId.get(o.id);if(existing){existing.allow=[...new Set([...(existing.allow||[]),...(o.allow||[])])];existing.deny=[...new Set([...(existing.deny||[]),...(o.deny||[])])].filter(p=>!existing.allow.includes(p));}else byId.set(o.id,{...o});}return [...byId.values()];}
+module.exports={has,hr,employee,lawyer,rank,small,iso,german,today,days,absence,fine,serial,money,overwrites};
