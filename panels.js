@@ -28,9 +28,10 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  if(locks.has('publish:'+key))throw Error('Dieses Panel wird gerade aktualisiert.');locks.add('publish:'+key);
  try{
  const channel=await client.channels.fetch(target||CHANNELS[key]);if(!channel?.isTextBased())throw Error('Textkanal nicht gefunden.');
- let payloads;
+ let payloads; let documentText;
  if(['philosophie','regelwerk','honorare'].includes(key)){
- payloads=split(fs.readFileSync(path.join(__dirname,key+'.txt'),'utf8')).map(content=>({content,allowedMentions:{parse:[]}}));
+ documentText=fs.readFileSync(path.join(__dirname,key+'.txt'),'utf8');
+ payloads=split(documentText).map(content=>({content,allowedMentions:{parse:[]}}));
  if(key!=='honorare')payloads.at(-1).components=[row(button('lja_deco','IN KENNTNIS GENOMMEN',ButtonStyle.Success).setDisabled(true))];
  }else if(key==='tickets')payloads=[ticketPayload()];
  else if(key==='punkte')payloads=[{embeds:[embed('LIBERTY JUSTICE ASSOCIATES','**Punkteübersicht**\n\nErstelle einen Punkt, damit du schnell gefunden wirst. Dein Eintrag wird nach 30 Minuten automatisch gelöscht.')],components:[row(button('lja_point','PUNKT ERSTELLEN',ButtonStyle.Success))]}];
@@ -40,21 +41,39 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  const old=state()[key];const ids=[];
  // Auch ohne lokale IDs die eigenen Panels im Discord-Verlauf erkennen.
  const componentIds={tickets:['lja_ticket_type'],punkte:['lja_point'],admin:['lja_admin_all','lja_admin_restart','lja_admin_publish']};
+ const normalize=text=>String(text||'').replace(/\s+/g,' ').trim();
+ const documentContent=normalize(documentText);
  const matches=m=>{
  if(m.author.id!==client.user.id)return false;
  if(old?.channel===channel.id&&old.ids?.includes(m.id))return true;
  if(m.components?.some(r=>r.components.some(c=>(componentIds[key]||[]).includes(c.customId))))return true;
  if(payloads.some(p=>p.content&&p.content===m.content))return true;
+
  return payloads.some(p=>p.embeds?.some(e=>m.embeds?.some(previous=>previous.title===e.data.title&&previous.description===e.data.description)));
  };
- let before;
+ const history=[];let before;
  while(true){
  const batch=await channel.messages.fetch({limit:100,...(before?{before}:{})});
  if(!batch.size)break;
- const last=batch.last().id;
- for(const m of batch.values())if(matches(m))await m.delete();
- if(batch.size<100)break;before=last;
+ history.push(...batch.values());
+ if(batch.size<100)break;before=batch.last().id;
  }
+ const completeDocumentParts=new Set();
+ if(documentContent){
+ const chronological=[...history].reverse();
+ for(let start=0;start<chronological.length;start++){
+ let joined='',spaced='';const group=[];
+ for(let end=start;end<chronological.length;end++){
+ const message=chronological[end];
+ if(message.author.id!==client.user.id||!message.content)break;
+ joined+=message.content;spaced+=(spaced?'\n':'')+message.content;group.push(message.id);
+ const exact=normalize(joined),withBreaks=normalize(spaced);
+ if(exact===documentContent||withBreaks===documentContent){for(const id of group)completeDocumentParts.add(id);break;}
+ if(!documentContent.startsWith(exact)&&!documentContent.startsWith(withBreaks))break;
+ }
+ }
+ }
+ for(const message of history)if(matches(message)||completeDocumentParts.has(message.id))await message.delete();
  if(old&&old.channel!==channel.id){
  const previous=await client.channels.fetch(old.channel);
  for(const id of old.ids||[]){const m=await previous.messages.fetch(id).catch(e=>{if(e.code===10008)return null;throw e;});if(m?.author.id===client.user.id)await m.delete();}
@@ -102,6 +121,9 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  let timer;
  return {publish,chooseRole,async start(){await sweep();if(!timer){timer=setInterval(()=>sweep().catch(console.error),15000);timer.unref();}await all();const s=state();if(s.version!==VERSION){await publish('changelog');const latest=state();latest.version=VERSION;save(latest);}if(s.admin)await publish('admin',s.admin.channel);}};
 };
+
+
+
 
 
 
