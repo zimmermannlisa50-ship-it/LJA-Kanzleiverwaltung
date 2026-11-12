@@ -23,6 +23,8 @@ module.exports=async function closeTicket(i,d){
  state.locks.add(i.channelId);
  try{
  await i.deferUpdate();
+ const archive=await i.client.channels.fetch('1484218994608312553');
+ if(!archive?.isTextBased()||typeof archive.send!=='function'||archive.guildId!==i.guildId)throw Error('Der Transkriptkanal ist nicht erreichbar.');
  const closed={...ticket,closed:true,closedAt:new Date().toISOString(),closedBy:i.user.id,events:[...(ticket.events||[])]};d.addEvent(closed,'Ticket nach Bestätigung geschlossen',i.user.id);
  const original=i.channel.permissionOverwrites.cache.get(ticket.userId);
  const flags=['SendMessages','AttachFiles','SendMessagesInThreads','CreatePublicThreads','CreatePrivateThreads'];
@@ -31,13 +33,15 @@ module.exports=async function closeTicket(i,d){
  try{
  await i.channel.permissionOverwrites.edit(ticket.userId,Object.fromEntries(flags.map(flag=>[flag,false])),'Ticket nach Nutzerbestätigung schließen');
  const transcript=await d.transcript(i.channel,closed);
- uploaded=await i.channel.send({content:'📁 **HTML-Transkript** · Ticket geschlossen und archiviert.',files:[transcript],allowedMentions:{parse:[]}});
+ uploaded=await archive.send({content:`📁 **HTML-Transkript · Ticket ${ticket.ticketNumber}**\n**Mandant:** ${ticket.firstName} ${ticket.lastName}\n**Ticketkanal:** <#${i.channelId}>\n**Geschlossen von:** <@${i.user.id}>`,files:[transcript],allowedMentions:{parse:[]}});
  }catch(error){await i.channel.permissionOverwrites.edit(ticket.userId,previous,'Schließen fehlgeschlagen: Schreibrechte wiederherstellen');throw error;}
+ closed.archiveChannelId=archive.id;closed.archiveMessageId=uploaded.id;closed.archiveUrl=uploaded.url;
  const latest=d.getTickets();latest[i.channelId]=closed;d.saveTickets(latest);state.confirmations.delete(nonce);
  await d.update(i.channel,closed);
  if(!d.workflow.name(closed))void i.channel.setName(`geschlossen-${i.channel.name}`.slice(0,100)).catch(e=>console.error('Archivname:',e.message));
- return await i.editReply({content:'Ticket geschlossen. Das HTML-Transkript ist im Ticket gespeichert.',components:[]});
+ return await i.editReply({content:`Ticket geschlossen. Das HTML-Transkript ist im Kanzleiarchiv gespeichert: ${uploaded.url}`,components:[]});
  }finally{state.locks.delete(i.channelId);}
  }catch(e){console.error('Ticket schließen:',e.message);const content='Schließen fehlgeschlagen: '+e.message+' Bitte erneut versuchen.';if(i.deferred||i.replied)await i.editReply({content}).catch(()=>{});else await i.reply({content,flags:64}).catch(()=>{});}
 };
 module.exports.buttonId=buttonId;
+

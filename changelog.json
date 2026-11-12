@@ -130,5 +130,13 @@
     "fixed": [
       "Schließen erst nach Bestätigung; HTML-Transkript mit vollständigem Verlauf und Wiederherstellung der Schreibrechte bei Transkriptfehlern."
     ]
+  },
+  {
+    "id": "transcripts-central-archive",
+    "date": "2026-11-12",
+    "title": "Transkriptarchiv",
+    "changed": [
+      "HTML-Transkripte werden beim Schließen im zentralen Transkriptkanal gespeichert."
+    ]
   }
 ]
