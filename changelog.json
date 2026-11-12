@@ -190,5 +190,18 @@
     "permissions": [
       "Personalakten und Personalaktionen nur für Partner und Kanzleileitung; Management und Sekretariat ausgeschlossen. Mitarbeiter behalten ausschließlich ihren eigenen separaten Austausch."
     ]
+  },
+  {
+    "id": "personnel-integrated-exchange",
+    "date": "2026-11-12",
+    "changed": [
+      "Mitarbeiteraustausch samt Unterlagenpanel und Verlauf in die eigene Personalakte integriert."
+    ],
+    "removed": [
+      "Separate Mitarbeiter-Austauschkanäle nach gesicherter Übernahme entfernt."
+    ],
+    "permissions": [
+      "Mitarbeiter können ihre eigene Akte lesen und antworten; keine neuen Posts oder Moderationsrechte."
+    ]
   }
 ]
