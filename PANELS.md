@@ -1,6 +1,6 @@
 ﻿# Kanzlei-Panels
 
-Start: `npm start`. Beim Start veröffentlicht/aktualisiert der Bot die festgelegten Panels. Vorhandene verwaltete Nachrichten werden aktualisiert; alte Ticket-Auswahlpanels des Bots werden entfernt. Andere Nachrichten bleiben bestehen.
+Start: `npm start`. Beim Start veröffentlicht/aktualisiert der Bot die festgelegten Panels. Alte eigene Panels werden vor der Veröffentlichung gelöscht und neu erstellt. Der Bot durchsucht dafür den Kanalverlauf, auch wenn die lokal gespeicherten Nachrichten-IDs fehlen. Andere Nachrichten bleiben bestehen.
 
 `/bot-panel` veröffentlicht die Verwaltung im aktuellen Kanal. Nur die vorhandenen Adminrollen dürfen sie bedienen. `/ticket-panel` aktualisiert das Ticketpanel im festgelegten Ticketkanal. Die öffentlichen Panels sind eigenständige Botnachrichten, die Command-Antwort bleibt privat.
 
@@ -15,3 +15,4 @@ Punkte und Freigaben werden in data/panels.json gespeichert. Abgelaufene Punkte 
 Prüfung: `node panels.test.js` und `node --check index.js`.
 
 Rollenanfragen werden direkt als Nachricht mit Freigabe-Buttons im Textkanal 1570462925402021920 veröffentlicht. Es werden dafür keine Unterkanäle erstellt. Die Sichtbarkeit richtet sich nach den bestehenden Kanalberechtigungen.
+

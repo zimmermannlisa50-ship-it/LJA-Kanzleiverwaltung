@@ -37,17 +37,33 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  else if(key==='admin')payloads=[{embeds:[embed('LIBERTY JUSTICE ASSOCIATES','**Botverwaltung**\n\nPanels gesammelt oder einzeln aktualisieren. Der Neustart verbindet den Bot neu und gleicht die Panels ab.')],components:[row(button('lja_admin_all','ALLE PANELS AKTUALISIEREN'),button('lja_admin_restart','BOT NEU STARTEN',ButtonStyle.Danger)),row(new StringSelectMenuBuilder().setCustomId('lja_admin_publish').setPlaceholder('Einzelnes Panel aktualisieren').addOptions(Object.keys(CHANNELS).filter(k=>k!=='changelog').map(k=>({label:k,value:k}))))]}];
  else if(key==='changelog')payloads=[{embeds:[embed('⚖️ LIBERTY JUSTICE ASSOCIATES','**Changelog · Kanzleiverwaltung**\n━━━━━━━━━━━━━━━━━━━━\n• Philosophie, Regelwerk und Honorarordnung veröffentlicht.\n• Sechs Ticketarten mit IC-Telefonnummer und Bewerbungsformular.\n• Rollenanfragen mit Freigabe, Ablehnung und Rollenvergabe.\n• Punkte-Panel mit automatischer Löschung nach 30 Minuten.\n• Botverwaltung und automatische Panel-Aktualisierung.\n━━━━━━━━━━━━━━━━━━━━\n*Präzision. Integrität. Durchsetzungskraft.*')]}];
  if(!payloads)throw Error('Unbekanntes Panel.');
- const s=state();const old=s[key];const ids=[];
- for(let n=0;n<payloads.length;n++){
- const payload={...payloads[n],allowedMentions:{parse:[]}};
- let msg=old?.channel===channel.id&&old.ids[n]?await channel.messages.fetch(old.ids[n]).catch(e=>{if(e.code===10008)return null;throw e;}):null;
- if(msg&&msg.author.id===client.user.id)await msg.edit({...payload,components:payload.components||[],embeds:payload.embeds||[]});else msg=await channel.send(payload);
- ids.push(msg.id);
- const current=state();current[key]={channel:channel.id,ids:[...ids,...(old?.channel===channel.id?old.ids.slice(n+1):[])]};save(current);
+ const old=state()[key];const ids=[];
+ // Auch ohne lokale IDs die eigenen Panels im Discord-Verlauf erkennen.
+ const componentIds={tickets:['lja_ticket_type'],punkte:['lja_point'],admin:['lja_admin_all','lja_admin_restart','lja_admin_publish']};
+ const matches=m=>{
+ if(m.author.id!==client.user.id)return false;
+ if(old?.channel===channel.id&&old.ids?.includes(m.id))return true;
+ if(m.components?.some(r=>r.components.some(c=>(componentIds[key]||[]).includes(c.customId))))return true;
+ if(payloads.some(p=>p.content&&p.content===m.content))return true;
+ return payloads.some(p=>p.embeds?.some(e=>m.embeds?.some(previous=>previous.title===e.data.title&&previous.description===e.data.description)));
+ };
+ let before;
+ while(true){
+ const batch=await channel.messages.fetch({limit:100,...(before?{before}:{})});
+ if(!batch.size)break;
+ const last=batch.last().id;
+ for(const m of batch.values())if(matches(m))await m.delete();
+ if(batch.size<100)break;before=last;
  }
- if(old){const previous=await client.channels.fetch(old.channel);for(const id of old.ids.filter(id=>!ids.includes(id))){const m=await previous.messages.fetch(id).catch(()=>null);if(m?.author.id===client.user.id)await m.delete();}}
- // Alte Ticket-Panels aus der bisherigen Implementierung gezielt entfernen.
- if(key==='tickets'){let before;while(true){const batch=await channel.messages.fetch({limit:100,...(before?{before}:{})});for(const m of batch.values())if(!ids.includes(m.id)&&m.author.id===client.user.id&&m.components.some(r=>r.components.some(c=>c.customId==='lja_ticket_type')))await m.delete();if(batch.size<100)break;before=batch.last().id;}}
+ if(old&&old.channel!==channel.id){
+ const previous=await client.channels.fetch(old.channel);
+ for(const id of old.ids||[]){const m=await previous.messages.fetch(id).catch(e=>{if(e.code===10008)return null;throw e;});if(m?.author.id===client.user.id)await m.delete();}
+ }
+ {const current=state();current[key]={channel:channel.id,ids:[]};save(current);}
+ for(const payload of payloads){
+ const msg=await channel.send({...payload,allowedMentions:{parse:[]}});ids.push(msg.id);
+ const current=state();current[key]={channel:channel.id,ids:[...ids]};save(current);
+ }
  const current=state();current[key]={channel:channel.id,ids};save(current);
  }finally{locks.delete('publish:'+key);}}
  async function all(){const errors=[];for(const key of Object.keys(CHANNELS).filter(k=>k!=='changelog'))try{await publish(key);}catch(e){console.error(key,e);errors.push(key+': '+e.message);}if(errors.length)throw Error(errors.join('\n'));}
@@ -86,6 +102,7 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  let timer;
  return {publish,chooseRole,async start(){await sweep();if(!timer){timer=setInterval(()=>sweep().catch(console.error),15000);timer.unref();}await all();const s=state();if(s.version!==VERSION){await publish('changelog');const latest=state();latest.version=VERSION;save(latest);}if(s.admin)await publish('admin',s.admin.channel);}};
 };
+
 
 
 
