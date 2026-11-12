@@ -1,61 +1,56 @@
-﻿[
-    {
-        "value":  [
-                      {
-                          "id":  "e51523f",
-                          "date":  "2026-11-12",
-                          "title":  "Kanzlei-Update",
-                          "added":  [
-                                        "Infopanels, Punktebutton, Rollenanfragen und Botverwaltung."
-                                    ],
-                          "changed":  [
-                                          "Ticketsystem mit sechs Ticketarten und IC-Telefonnummer."
-                                      ],
-                          "fixed":  [
-                                        "Absturz bei der Rollenauswahl abgefangen."
-                                    ]
-                      },
-                      {
-                          "id":  "3fddcd6",
-                          "date":  "2026-11-12",
-                          "title":  "Rollenanfragen",
-                          "fixed":  [
-                                        "Rollenanfragen werden direkt im vorgesehenen Textkanal gepostet."
-                                    ]
-                      },
-                      {
-                          "id":  "1bb6bab",
-                          "date":  "2026-11-12",
-                          "title":  "Panelbereinigung",
-                          "fixed":  [
-                                        "Alte Panels werden vor dem erneuten Posten gelöscht."
-                                    ]
-                      },
-                      {
-                          "id":  "cf0256a",
-                          "date":  "2026-11-12",
-                          "title":  "Mehrteilige Panels",
-                          "fixed":  [
-                                        "Auch alle Nachrichten mehrteiliger Panels werden bereinigt."
-                                    ]
-                      },
-                      {
-                          "id":  "changelog-history-v2",
-                          "date":  "2026-11-12",
-                          "title":  "Changelogs",
-                          "changed":  [
-                                          "Kurze Einträge, getrennt nach Hinzugefügt, Geändert und Behoben. Ältere Einträge bleiben erhalten."
-                                      ]
-                      }
-                  ],
-        "Count":  5
-    },
-    {
-        "id":  "role-status-repair-v1",
-        "date":  "2026-11-12",
-        "title":  "Rollenfreigabe",
-        "fixed":  [
-                      "Fehlende Anfragedaten werden wiederhergestellt; der Status wird nach Annahme oder Ablehnung zuverlässig aktualisiert."
-                  ]
-    }
+[
+  {
+    "id": "e51523f",
+    "date": "2026-11-12",
+    "title": "Kanzlei-Update",
+    "added": [
+      "Infopanels, Punktebutton, Rollenanfragen und Botverwaltung."
+    ],
+    "changed": [
+      "Ticketsystem mit sechs Ticketarten und IC-Telefonnummer."
+    ],
+    "fixed": [
+      "Absturz bei der Rollenauswahl abgefangen."
+    ]
+  },
+  {
+    "id": "3fddcd6",
+    "date": "2026-11-12",
+    "title": "Rollenanfragen",
+    "fixed": [
+      "Rollenanfragen werden direkt im vorgesehenen Textkanal gepostet."
+    ]
+  },
+  {
+    "id": "1bb6bab",
+    "date": "2026-11-12",
+    "title": "Panelbereinigung",
+    "fixed": [
+      "Alte Panels werden vor dem erneuten Posten gelöscht."
+    ]
+  },
+  {
+    "id": "cf0256a",
+    "date": "2026-11-12",
+    "title": "Mehrteilige Panels",
+    "fixed": [
+      "Auch alle Nachrichten mehrteiliger Panels werden bereinigt."
+    ]
+  },
+  {
+    "id": "changelog-history-v2",
+    "date": "2026-11-12",
+    "title": "Changelogs",
+    "changed": [
+      "Kurze Einträge, getrennt nach Hinzugefügt, Geändert und Behoben. Ältere Einträge bleiben erhalten."
+    ]
+  },
+  {
+    "id": "role-status-repair-v1",
+    "date": "2026-11-12",
+    "title": "Rollenfreigabe",
+    "fixed": [
+      "Fehlende Anfragedaten werden wiederhergestellt; der Status wird nach Annahme oder Ablehnung zuverlässig aktualisiert."
+    ]
+  }
 ]
