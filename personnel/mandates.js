@@ -4,7 +4,7 @@ module.exports=({client,deps,resolveLawyer,caseIndex})=>{
  const snapshot=ch=>ch.permissionOverwrites.cache.map(o=>({id:o.id,type:o.type,allow:o.allow.bitfield.toString(),deny:o.deny.bitfield.toString()}));
  const restore=list=>list.map(o=>({...o,allow:BigInt(o.allow),deny:BigInt(o.deny)}));
  async function assign(channel,ticket,member){
- if(!R.lawyer(member))throw Error('Nur Mitarbeiter mit Anwaltsrang dürfen Mandate übernehmen.');if(ticket.handlerId||ticket.closed||ticket.completed)throw Error('Dieses Ticket kann gerade nicht übernommen werden.');
+ if(!C.QUEUES[ticket.categoryKey])throw Error('Nur Mandate dürfen in Anwaltsbereiche verschoben werden.');if(!R.lawyer(member))throw Error('Nur Mitarbeiter mit Anwaltsrang dürfen Mandate übernehmen.');if(ticket.handlerId||ticket.closed||ticket.completed)throw Error('Dieses Ticket kann gerade nicht übernommen werden.');
  const forum=await resolveLawyer(member);const originalParent=channel.parentId,originalPermissions=snapshot(channel);const changed={...ticket,handlerId:member.id,lastHandlerId:member.id,waiting:false,originalCategoryId:C.QUEUES[ticket.categoryKey]||ticket.originalCategoryId||originalParent,queuePermissions:ticket.queuePermissions||originalPermissions};
  try{
  await channel.setParent(forum.parentId,{lockPermissions:false,reason:'Mandat an zuständigen Anwalt zuordnen'});

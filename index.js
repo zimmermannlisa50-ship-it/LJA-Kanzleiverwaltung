@@ -608,7 +608,7 @@ client.on("interactionCreate", async interaction => {
 
         if (!ticket) return;
         if (ticket.categoryKey === "bewerbung" && ["lja_takeover", "lja_release", "lja_wait"].includes(customId)) return await personnel.handleApplicationAssignment(interaction, ticket);
-        if (ticket.categoryKey === "bewerbung" && !personnel.allowed(interaction.member)) return await interaction.reply({content: "Diese Aktion ist nur für die Personalverwaltung erlaubt.", flags: 64});
+        if (ticket.categoryKey === "bewerbung" && !personnel.applicationAllowed(interaction.member)) return await interaction.reply({content: "Diese Aktion ist nur für die Personalverwaltung erlaubt.", flags: 64});
         if (ticket.closed) return await interaction.reply({content: "Dieses Ticket ist bereits geschlossen.", flags: 64});
         if (require("./ticket-close-state").locks.has(interaction.channelId)) return await interaction.reply({content: "Dieses Ticket wird gerade geschlossen.", flags: 64});
 
@@ -955,7 +955,7 @@ client.on("interactionCreate", async interaction => {
         owner: registrationStore.read().instanceId || "local",
         getTickets: getTicketData, saveTickets: saveTicketData, isLeadership,
         update: updateTicketMessage, transcript: createHtmlTranscript, addEvent: addTicketEvent,
-        workflow: ticketWorkflow, isPersonnel: personnel.allowed, onClosed: personnel.caseIndex
+        workflow: ticketWorkflow, isPersonnel: personnel.applicationAllowed, onClosed: personnel.caseIndex
     });
 });
 // ==========================================

@@ -286,5 +286,18 @@
       "Botstart auf den freigegebenen Rechner und bestehenden Datenbestand begrenzt; doppelte lokale Starts gesperrt.",
       "Fehlerhafte Bewerbung aus weiterem Datenstand übernommen; aktive Ticketbuttons wiederhergestellt."
     ]
+  },
+  {
+    "id": "application-personnel-role-and-index-guard",
+    "date": "2026-11-13",
+    "added": [
+      "Rolle Personalverwaltung für Bewerbungszugriff, Übernahme, Einstellung, Ablehnung, Blacklist und Abschluss."
+    ],
+    "fixed": [
+      "Bewerbungen erzeugen keine Mandatsübersichtsposts mehr; falsch einsortierter Post bereinigt."
+    ],
+    "permissions": [
+      "Personalverwaltung erhält Bewerbungsrechte; andere Personalakten bleiben nach bisherigen Regeln geschützt."
+    ]
   }
 ]
