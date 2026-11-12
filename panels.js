@@ -72,7 +72,7 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  if(i.isModalSubmit()&&i.customId.startsWith('lja_role_form_')){
  const role=i.customId.slice('lja_role_form_'.length);if(!ROLES[role])throw Error('Ungültige Rolle.');await i.deferReply({ephemeral:true});
  const first=i.fields.getTextInputValue('first').trim(),last=i.fields.getTextInputValue('last').trim();if(!first||!last)throw Error('Bitte beide Namen ausfüllen.');
- const c=await i.guild.channels.create({name:'rollen-'+i.user.id,type:ChannelType.GuildText,parent:'1570462925402021920',permissionOverwrites:[{id:i.guild.id,deny:['ViewChannel']},{id:i.user.id,allow:['ViewChannel','ReadMessageHistory','SendMessages']},{id:client.user.id,allow:['ViewChannel','SendMessages','ReadMessageHistory']},...[...new Set([APPROVER,...ADMIN_ROLE_IDS])].map(id=>({id,allow:['ViewChannel','ReadMessageHistory','SendMessages']}))]});
+ const c=await i.guild.channels.fetch('1570462925402021920'); if(!c || c.type!==ChannelType.GuildText)throw Error('Der Rollenanfrage-Zielkanal muss ein Textkanal sein.');
  const m=await c.send({content:`<@&${APPROVER}>`,allowedMentions:{roles:[APPROVER]},embeds:[embed('⚡ Rollenanfrage',`**IC-Name:** ${first} ${last}\n**Discord:** <@${i.user.id}>\n**Discord-ID:** ${i.user.id}\n**Gewünschte Rolle:** ${ROLES[role]}\n**Status:** Offen`)],components:[row(button('lja_role_accept','ANNEHMEN',ButtonStyle.Success),button('lja_role_reject','ABLEHNEN',ButtonStyle.Danger))]});
  const s=state();s.requests||={};s.requests[m.id]={user:i.user.id,role,first,last,status:'open'};save(s);return i.editReply(`Rollenanfrage erstellt: ${c}`);}
  if(['lja_role_accept','lja_role_reject'].includes(i.customId)){
@@ -86,5 +86,6 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  let timer;
  return {publish,chooseRole,async start(){await sweep();if(!timer){timer=setInterval(()=>sweep().catch(console.error),15000);timer.unref();}await all();const s=state();if(s.version!==VERSION){await publish('changelog');const latest=state();latest.version=VERSION;save(latest);}if(s.admin)await publish('admin',s.admin.channel);}};
 };
+
 
 
