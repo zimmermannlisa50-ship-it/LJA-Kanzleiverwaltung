@@ -9,12 +9,14 @@ const client={guilds:{cache:new Map(),fetch:async()=>({members:{fetch:async()=>m
 let result='';const i={customId:registration.buttonId(),user:{id:'new'},reply:async p=>{result=p.content;},showModal:async()=>{modal++;},deferReply:async()=>{},editReply:async p=>{result=typeof p==='string'?p:p.content;}};
 data.active=false;await registration.handle(client,i);assert.equal(modal,0);assert.equal(grants,0);assert.equal(result,'');data.active=true;
 await registration.invite(member);await registration.invite(member);assert.equal(dms,1);
+const accept=registration.acceptanceRow().toJSON().components[0];assert.equal(accept.label,'REGELWERK AKZEPTIEREN');assert(!accept.disabled);assert.equal(accept.custom_id,registration.buttonId());assert(registration.panel().content.includes('1477943304694923397'));assert(!registration.panel().components);
 const realId=i.customId;i.customId='lja_reg:v2:other-instance:open';await registration.handle(client,i);assert.equal(modal,0);i.customId=realId;await registration.handle(client,i);assert.equal(modal,1);
 i.customId=registration.formId();i.fields={getTextInputValue:id=>({firstName:'Max',lastName:'Muster',phone:'555-1234'})[id]};
-await registration.handle(client,i);assert.equal(grants,1);assert.equal(data.profiles.new.phone,'555-1234');assert(result.includes('abgeschlossen'));
+await registration.handle(client,i);assert.equal(grants,1);assert.equal(data.profiles.new.phone,'555-1234');assert(data.profiles.new.rulesAcceptedAt);assert(result.includes('abgeschlossen'));
 i.customId=registration.buttonId();i.user.id='existing';await registration.handle(client,i);assert(result.includes('Bestandsmitglied'));assert.equal(grants,1);
 i.user.id='other';member.id='other';i.customId=registration.formId();i.fields={getTextInputValue:id=>id==='phone'?'abc':'Test'};await registration.handle(client,i);assert(!data.profiles.other);assert.equal(grants,1);
 console.log('OK: Ohne Discord-Regelbestätigung, Bestandsmitglieder ausgenommen, DM nur einmal, Pflichtdaten gespeichert und Bürgerrolle erst danach vergeben.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
 
 

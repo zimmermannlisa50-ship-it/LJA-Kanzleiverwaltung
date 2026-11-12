@@ -17,7 +17,7 @@ const row=(...components)=>new ActionRowBuilder().addComponents(...components);
 const button=(id,label,style=ButtonStyle.Primary)=>new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(style);
 const embed=(title,description)=>new EmbedBuilder().setColor(0xD4AF37).setTitle(title).setDescription(description).setFooter({text:'Liberty Justice Associates | Kanzleiverwaltung'});
 function split(text,max=1900){const parts=[];let part='';for(const line of text.trim().split('\n')){if((part+'\n'+line).length>max){parts.push(part);part='';}part+=(part?'\n':'')+line;}if(part)parts.push(part);return parts;}
-module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJson,writeJson,DATA_DIR}){
+module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJson,writeJson,DATA_DIR,registrationRow}){
  const file=path.join(DATA_DIR,'panels.json');
  const state=()=>readJson(file);
  const save=s=>writeJson(file,s);
@@ -33,7 +33,8 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  if(['philosophie','regelwerk','honorare'].includes(key)){
  documentText=fs.readFileSync(path.join(__dirname,key+'.txt'),'utf8');
  payloads=require('./document-panels').render(key,documentText);
- if(key!=='honorare')payloads.at(-1).components=[row(button('lja_deco','IN KENNTNIS GENOMMEN',ButtonStyle.Success).setDisabled(true))];
+ if(key==='regelwerk')payloads.at(-1).components=[registrationRow?registrationRow():require('./registration').acceptanceRow()];
+ else if(key==='philosophie')payloads.at(-1).components=[row(button('lja_deco','IN KENNTNIS GENOMMEN',ButtonStyle.Success).setDisabled(true))];
  }else if(key==='tickets')payloads=[ticketPayload()];
  else if(key==='punkte')payloads=[{embeds:[embed('LIBERTY JUSTICE ASSOCIATES','**Punkteübersicht**\n\nErstelle einen Punkt, damit du schnell gefunden wirst. Dein Eintrag wird nach 3 Minuten automatisch gelöscht.')],components:[row(button('lja_point','PUNKT ERSTELLEN',ButtonStyle.Success))]}];
  else if(key==='admin')payloads=[{embeds:[embed('LIBERTY JUSTICE ASSOCIATES','**Botverwaltung**\n\nPanels gesammelt oder einzeln aktualisieren. Der Neustart verbindet den Bot neu und gleicht die Panels ab.')],components:[row(button('lja_admin_all','ALLE PANELS AKTUALISIEREN'),button('lja_admin_restart','BOT NEU STARTEN',ButtonStyle.Danger)),row(new StringSelectMenuBuilder().setCustomId('lja_admin_publish').setPlaceholder('Einzelnes Panel aktualisieren').addOptions(Object.keys(CHANNELS).filter(k=>k!=='changelog').map(k=>({label:k,value:k}))))]}];

@@ -37,7 +37,7 @@ try{
  const differences=[];
  for(const previous of backup.members){const member=guild.members.cache.get(previous.id);if(!member)continue;for(const c of backup.channels){const now=guild.channels.cache.get(c.id);if(now&&now.permissionsFor(member).has(P.ViewChannel)!==previous.visible.includes(c.id))differences.push({member:previous.id,channel:c.id});}}
  if(differences.length)throw Error(`Bestandszugriffe weichen ab (${differences.length}); Änderungen werden zurückgesetzt.`);
- const panelId=await require('./registration').publish(client);
+ const panelId=await require('./registration').publish(client,{setup:true});
  const config=store.read();config.active=true;config.activatedAt=backup.at;config.existingIds=backup.members.map(m=>m.id);config.profiles||={};config.legacyRoleId=legacy?.id||null;config.panelId=panelId;config.permissionChanges=targets.map(c=>({id:c.id,name:c.name,everyoneView:false,citizenView:c.citizen}));store.write(config);
  fs.writeFileSync('data/registration-rights-audit.json',JSON.stringify({at:new Date().toISOString(),changes:config.permissionChanges,legacyRoleId:config.legacyRoleId,grandfathered:config.existingIds.length,visibilityDifferences:0},null,2));
   const changelogFile=require('path').join(__dirname,'changelog.json');

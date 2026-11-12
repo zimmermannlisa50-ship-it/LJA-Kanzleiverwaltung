@@ -688,7 +688,7 @@ client.on("interactionCreate", async interaction => {
             interaction.customId === "lja_ticket_type"
         ) {
 
-            if (registrationStore.mustRegister(interaction.user.id)) return await interaction.reply({content: "Bitte zuerst deine IC-Daten in der Willkommenshalle hinterlegen: <#1477731364403941540>", flags: 64});
+            if (registrationStore.mustRegister(interaction.user.id)) return await interaction.reply({content: "Bitte zuerst deine IC-Daten nach Annahme des Kanzleiregelwerks hinterlegen: <#1477943304694923397>", flags: 64});
             const categoryKey = interaction.values[0];
             if (categoryKey === "rollen") return await panels.chooseRole(interaction);
             const category = TICKET_CATEGORIES[categoryKey];
@@ -766,7 +766,7 @@ client.on("interactionCreate", async interaction => {
                 });
             }
 
-            if (registrationStore.mustRegister(interaction.user.id)) return await interaction.editReply("Bitte zuerst deine IC-Daten in der Willkommenshalle hinterlegen.");
+            if (registrationStore.mustRegister(interaction.user.id)) return await interaction.editReply("Bitte zuerst deine IC-Daten über den Button im Kanzleiregelwerk hinterlegen.");
             const firstName = interaction.fields.getTextInputValue("firstName").trim();
             const lastName = interaction.fields.getTextInputValue("lastName").trim();
             const phone = interaction.fields.getTextInputValue("phone").trim();
@@ -1427,6 +1427,7 @@ if (!TOKEN) {
 
 client.on("error", error => console.error("Discord-Clientfehler:", error.message));
 client.login(TOKEN).catch(error => { console.error("Bot-Login fehlgeschlagen:", error.message); process.exitCode = 1; });
+
 
 
 

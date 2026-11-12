@@ -111,5 +111,13 @@
     "changed": [
       "Preisliste, Kanzleiphilosophie und Regelwerk als goldene Karten gestaltet; Honorare und Beteiligungen in ausgerichteten Tabellen."
     ]
+  },
+  {
+    "id": "registration-in-rulebook",
+    "date": "2026-11-12",
+    "title": "Regelwerk & Registrierung",
+    "changed": [
+      "Registrierung direkt ins Kanzleiregelwerk integriert: Akzeptieren → IC-Formular → Bürgerrolle. Separates Registrierungspanel entfernt."
+    ]
   }
 ]
