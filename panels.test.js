@@ -1,0 +1,8 @@
+﻿const assert=require('node:assert/strict');
+const {EventEmitter}=require('node:events');
+const client=new EventEmitter();client.user={id:'bot'};
+let stored={},sequence=0;const channels=new Map();
+client.channels={fetch:async id=>{if(!channels.has(id)){const messages=new Map();const channel={id,isTextBased:()=>true,messages:{fetch:async arg=>{if(typeof arg==='object')return new Map();if(!messages.has(arg)){const e=new Error();e.code=10008;throw e;}return messages.get(arg);}},send:async payload=>{validate(payload);const m={id:String(++sequence),author:{id:'bot'},components:[],edit:async p=>validate(p),delete:async()=>messages.delete(m.id)};messages.set(m.id,m);return m;}};channels.set(id,{channel,messages});}return channels.get(id).channel;}};
+function validate(p){if(p.content)assert(p.content.length<=2000);for(const e of p.embeds||[]){const d=e.toJSON();assert(d.description.length<=4096);}for(const r of p.components||[])r.toJSON();}
+const panels=require('./panels')({client,hasRole:()=>true,ADMIN_ROLE_IDS:[],TICKET_CATEGORIES:{test:{label:'Test',emoji:'⚖️'}},readJson:()=>structuredClone(stored),writeJson:(_,s)=>stored=structuredClone(s),DATA_DIR:'.'});
+(async()=>{for(const key of ['philosophie','regelwerk','honorare','tickets','punkte','admin','changelog']){await panels.publish(key,'test-'+key);const ids=[...stored[key].ids];await panels.publish(key,'test-'+key);assert.deepEqual(stored[key].ids,ids);assert.equal(channels.get('test-'+key).messages.size,ids.length);}console.log('OK: Alle sieben Panels gültig; Aktualisierung ohne Duplikate.');})().catch(e=>{console.error(e);process.exitCode=1;});

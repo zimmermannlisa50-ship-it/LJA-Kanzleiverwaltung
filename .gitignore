@@ -1,2 +1,5 @@
 .env
 node_modules/
+# Lokale Betriebsdaten
+data/
+*.log

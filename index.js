@@ -1,4 +1,4 @@
-require("dotenv").config();
+﻿require("dotenv").config();
 
 const {
     Client,
@@ -72,10 +72,11 @@ const TICKET_CATEGORIES = {
         emoji: "📜",
         categoryId: "1478007300458287345"
     },
+    beschwerde: { label: "Beschwerde", emoji: "🚩", categoryId: "1484218404092121340" },
     bewerbung: {
         label: "Bewerbungen",
         emoji: "💼",
-        categoryId: "1478007779867230291"
+        categoryId: "1478007585784201351"
     }
 };
 
@@ -248,6 +249,9 @@ function buildTicketEmbed(ticket) {
                 name: "IC-Nachname",
                 value: truncate(ticket.lastName),
                 inline: true
+            },
+            {
+                name: "IC-Telefonnummer", value: ticket.phone || "Nicht hinterlegt", inline: false
             },
             {
                 name: "Betreff des Anliegens",
@@ -558,7 +562,9 @@ const client = new Client({
 // SLASH-COMMANDS
 // ==========================================
 
+const panels = require("./panels")({ client, hasRole, ADMIN_ROLE_IDS, TICKET_CATEGORIES, readJson, writeJson, DATA_DIR });
 const commands = [
+    new SlashCommandBuilder().setName("bot-panel").setDescription("?ffnet die Kanzlei-Botverwaltung.").toJSON(),
     new SlashCommandBuilder()
         .setName("ticket-panel")
         .setDescription("Erstellt das Ticket-Panel der Kanzlei.")
@@ -590,11 +596,12 @@ async function registerCommands() {
 // BOT STARTEN
 // ==========================================
 
-client.once("ready", async () => {
+client.once("clientReady", async () => {
     console.log(`LJA-Kanzleiverwaltung online als ${client.user.tag}`);
 
     ensureStorage();
     await registerCommands();
+    await panels.start().catch(console.error);
 });
 
 // ==========================================
@@ -620,34 +627,9 @@ client.on("interactionCreate", async interaction => {
                     });
                 }
 
-                const embed = new EmbedBuilder()
-                    .setColor(0xD4AF37)
-                    .setTitle("LIBERTY JUSTICE ASSOCIATES")
-                    .setDescription(
-                        "*Willkommen bei Liberty Justice Associates.*\n\n" +
-                        "__Bitte wähle die passende Ticketart für dein Anliegen:__"
-                    )
-                    .setFooter({
-                        text: "Liberty Justice Associates | Kanzleiverwaltung"
-                    });
-
-                const menu = new StringSelectMenuBuilder()
-                    .setCustomId("lja_ticket_type")
-                    .setPlaceholder("Wähle die passende Ticketart...")
-                    .addOptions(
-                        Object.entries(TICKET_CATEGORIES).map(([key, category]) => ({
-                            label: category.label,
-                            value: key,
-                            emoji: category.emoji
-                        }))
-                    );
-
-                const row = new ActionRowBuilder().addComponents(menu);
-
-                await interaction.reply({
-                    embeds: [embed],
-                    components: [row]
-                });
+                await interaction.deferReply({ ephemeral: true });
+                await panels.publish("tickets");
+                await interaction.editReply("Ticket-Panel ver?ffentlicht.");
             }
         }
 
@@ -682,6 +664,7 @@ client.on("interactionCreate", async interaction => {
         ) {
 
             const categoryKey = interaction.values[0];
+            if (categoryKey === "rollen") return await panels.chooseRole(interaction);
             const category = TICKET_CATEGORIES[categoryKey];
 
             if (!category) {
@@ -724,13 +707,9 @@ client.on("interactionCreate", async interaction => {
                 .setRequired(true)
                 .setMaxLength(4000);
 
-            modal.addComponents(
-                new ActionRowBuilder().addComponents(firstName),
-                new ActionRowBuilder().addComponents(lastName),
-                new ActionRowBuilder().addComponents(subject),
-                new ActionRowBuilder().addComponents(facts)
-            );
-
+            const phone = new TextInputBuilder().setCustomId("phone").setLabel("IC-Telefonnummer").setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(50);
+            const inputs = categoryKey === "bewerbung" ? [firstName, lastName, phone] : [firstName, lastName, phone, subject, facts];
+            modal.addComponents(...inputs.map(input => new ActionRowBuilder().addComponents(input)));
             await interaction.showModal(modal);
             return;
         }
@@ -761,8 +740,9 @@ client.on("interactionCreate", async interaction => {
 
             const firstName = interaction.fields.getTextInputValue("firstName").trim();
             const lastName = interaction.fields.getTextInputValue("lastName").trim();
-            const subject = interaction.fields.getTextInputValue("subject").trim();
-            const facts = interaction.fields.getTextInputValue("facts").trim();
+            const phone = interaction.fields.getTextInputValue("phone").trim();
+            const subject = categoryKey === "bewerbung" ? "Bewerbung" : interaction.fields.getTextInputValue("subject").trim();
+            const facts = categoryKey === "bewerbung" ? "Bewerbung eingegangen." : interaction.fields.getTextInputValue("facts").trim();
 
             // Nummer für die jeweilige Kategorie erhöhen
             const counters = readJson(COUNTER_FILE);
@@ -830,6 +810,7 @@ client.on("interactionCreate", async interaction => {
                 categoryLabel: category.label,
                 firstName,
                 lastName,
+                phone,
                 subject,
                 facts,
                 dojCaseNumber: null,
@@ -1415,4 +1396,6 @@ if (!TOKEN) {
     process.exit(1);
 }
 
-client.login(TOKEN);
+client.on("error", error => console.error("Discord-Clientfehler:", error.message));
+client.login(TOKEN).catch(error => { console.error("Bot-Login fehlgeschlagen:", error.message); process.exitCode = 1; });
+
