@@ -42,7 +42,7 @@
     "date": "2026-11-12",
     "title": "Changelogs",
     "changed": [
-      "Kurze Einträge, getrennt nach Hinzugefügt, Geändert und Behoben. Ältere Einträge bleiben erhalten."
+      "Kurze Changelogs nach Hinzugefügt, Geändert und Behoben; Historie bleibt erhalten."
     ]
   },
   {
@@ -50,7 +50,7 @@
     "date": "2026-11-12",
     "title": "Rollenfreigabe",
     "fixed": [
-      "Fehlende Anfragedaten werden wiederhergestellt; der Status wird nach Annahme oder Ablehnung zuverlässig aktualisiert."
+      "Fehlende Rollenanfragedaten wiederhergestellt; Entscheidungsstatus korrigiert."
     ]
   },
   {
@@ -90,10 +90,10 @@
     "date": "2026-11-12",
     "title": "Registrierung aktiv",
     "added": [
-      "Neue Mitglieder hinterlegen IC-Vorname, IC-Nachname und IC-Telefonnummer ohne zusätzliche Discord-Regelbestätigung; Ticketformulare übernehmen die Angaben."
+      "IC-Pflichtregistrierung für neue Mitglieder; Ticketformulare übernehmen die Angaben."
     ],
     "permissions": [
-      "Bürgerbereiche sind erst nach Registrierung sichtbar. Willkommen und Regelwerk bleiben zugänglich. 170 Bestandsmitglieder bleiben ausgenommen; ihre bisherige Kanalsichtbarkeit wurde geprüft."
+      "Bürgerbereiche nach Registrierung sichtbar; Regelwerk/Willkommen offen. 170 Bestandsmitglieder ausgenommen."
     ]
   },
   {
@@ -101,7 +101,7 @@
     "date": "2026-11-12",
     "title": "Registrierungsbutton",
     "fixed": [
-      "Registrierungsbutton der aktiven Botinstanz zugeordnet; nicht eingerichtete Instanzen antworten nicht mehr dazwischen."
+      "Registrierungsbutton eindeutig der aktiven Botinstanz zugeordnet."
     ]
   },
   {
@@ -109,7 +109,7 @@
     "date": "2026-11-12",
     "title": "Infopanels",
     "changed": [
-      "Preisliste, Kanzleiphilosophie und Regelwerk als goldene Karten gestaltet; Honorare und Beteiligungen in ausgerichteten Tabellen."
+      "Preisliste, Philosophie und Regelwerk als goldene Karten; Honorartabellen ausgerichtet."
     ]
   },
   {
@@ -144,7 +144,7 @@
     "date": "2026-11-12",
     "title": "IC-Nutzerprofile",
     "changed": [
-      "Beim Ticket-Erstellen werden IC-Name und Telefonnummer im Nutzerprofil angelegt oder aktualisiert und beim nächsten Ticket vorausgefüllt."
+      "IC-Name und Telefon beim Ticket-Erstellen speichern, aktualisieren und vorausfüllen."
     ]
   },
   {
@@ -187,7 +187,7 @@
       "Farbige Kreis-Tags und Unterlagenstatus im geschützten Mitarbeiteraustausch ergänzt."
     ],
     "permissions": [
-      "Personalverwaltung auf Partner und Kanzleileitung begrenzt; Management/Sekretariat ausgeschlossen."
+      "Personalverwaltung nur für Partner/Leitung; Management/Sekretariat ausgeschlossen."
     ]
   },
   {
@@ -227,7 +227,24 @@
     "id": "personnel-delete-after-transcript",
     "date": "2026-11-12",
     "changed": [
-      "Nach geprüftem Transkript und Teamupdate-Link wird die Personalakte gelöscht; auch rückwirkend."
+      "Personalakten nach geprüftem Transkript und Teamupdate-Link löschen, auch rückwirkend."
+    ]
+  },
+  {
+    "id": "lawyer-layout-and-application-workflow",
+    "date": "2026-11-12",
+    "added": [
+      "💬 Allgemeine Rechtsberatung und Bewerbungsblacklist mit Pflichtgrund, Rollenvergabe und Protokoll."
+    ],
+    "changed": [
+      "Anwaltsblöcke: übernommene Tickets unter dem Forum mit └; Freigabe entfernt die Zuordnung.",
+      "Bewerbungen: Status/Bearbeiter statt Nummer, DOJ-Aktenzeichen und Sachverhalt; Rangwahl bei Einstellung."
+    ],
+    "permissions": [
+      "Mandate: Mandant, Anwalt, Kanzleileitung/Sekretariat und Zusatzfreigaben. Mitarbeiter können Bewerbungen übernehmen; Personalentscheidungen bleiben geschützt."
+    ],
+    "fixed": [
+      "Kurze Windows-Dateisperren beim Speichern abgefangen."
     ]
   }
 ]

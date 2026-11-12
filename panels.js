@@ -1,4 +1,4 @@
-﻿const {EmbedBuilder,ActionRowBuilder,ButtonBuilder,ButtonStyle,StringSelectMenuBuilder,ModalBuilder,TextInputBuilder,TextInputStyle,ChannelType}=require('discord.js');
+const {EmbedBuilder,ActionRowBuilder,ButtonBuilder,ButtonStyle,StringSelectMenuBuilder,ModalBuilder,TextInputBuilder,TextInputStyle,ChannelType}=require('discord.js');
 const fs=require('fs'),path=require('path');
 const publishChangelogs=require('./changelog');
 const APPROVER='1485673349098111170';
@@ -23,7 +23,7 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  const save=s=>writeJson(file,s);
  const admin=i=>i.guildId==='1477731363082993665'&&hasRole(i.member,ADMIN_ROLE_IDS);
  const locks=new Set();
- function ticketPayload(){return {embeds:[embed('Liberty Justice Associates','Willkommen bei Liberty Justice Associates.\n\nBitte wähle die passende Ticketart für dein Anliegen:\n\n⚖️ Notfall / Strafverteidigung\n🏛️ Klage gegen Staat / Amtshaftung\n📜 Verträge / Unternehmen\n💼 Bewerbungen\n🚩 Beschwerde\n⚡ Rollenanfrage')],components:[row(new StringSelectMenuBuilder().setCustomId('lja_ticket_type').setPlaceholder('Ticketart auswählen').addOptions([...Object.entries(TICKET_CATEGORIES).map(([value,c])=>({label:c.label,value,emoji:c.emoji})),{label:'Rollenanfrage',value:'rollen',emoji:'⚡'}]))]};}
+ function ticketPayload(){return {embeds:[embed('Liberty Justice Associates','Willkommen bei Liberty Justice Associates.\n\nBitte wähle die passende Ticketart für dein Anliegen:\n\n⚖️ Notfall / Strafverteidigung\n🏛️ Klage gegen Staat / Amtshaftung\n💬 Allgemeine Rechtsberatung\n📜 Verträge / Unternehmen\n💼 Bewerbungen\n🚩 Beschwerde\n⚡ Rollenanfrage')],components:[row(new StringSelectMenuBuilder().setCustomId('lja_ticket_type').setPlaceholder('Ticketart auswählen').addOptions([...Object.entries(TICKET_CATEGORIES).map(([value,c])=>({label:c.label,value,emoji:c.emoji})),{label:'Rollenanfrage',value:'rollen',emoji:'⚡'}]))]};}
  async function publish(key,target){
  if(key==='changelog'){if(locks.has('changelog'))throw Error('Changelog wird bereits veröffentlicht.');locks.add('changelog');try{const record=await publishChangelogs(client,target||CHANNELS.changelog);const current=state();current.changelog=record;save(current);return;}finally{locks.delete('changelog');}}
  if(locks.has('publish:'+key))throw Error('Dieses Panel wird gerade aktualisiert.');locks.add('publish:'+key);

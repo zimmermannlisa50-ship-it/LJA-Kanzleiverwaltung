@@ -68,6 +68,7 @@ const TICKET_CATEGORIES = {
         emoji: "🏛️",
         categoryId: "1478007088465838274"
     },
+    beratung: { label: "Allgemeine Rechtsberatung", emoji: "💬", categoryId: "1478007585784201351" },
     vertraege: {
         label: "Verträge / Unternehmen",
         emoji: "📜",
@@ -196,7 +197,7 @@ async function updateTicketMessage(channel, ticket) {
             embeds: [buildTicketEmbed(ticket)],
             components: buildTicketComponents(ticket)
         });
-        if (["strafverteidigung", "klage"].includes(ticket.categoryKey)) await personnel.caseIndex(ticket);
+        if (["strafverteidigung", "klage", "beratung"].includes(ticket.categoryKey)) await personnel.caseIndex(ticket);
     } catch (error) {
         console.error("Ticket-Nachricht konnte nicht aktualisiert werden:", error);
     }
@@ -450,6 +451,7 @@ client.on("interactionCreate", async interaction => {
             }
 
             if (registrationStore.mustRegister(interaction.user.id)) return await interaction.editReply("Bitte zuerst deine IC-Daten über den Button im Kanzleiregelwerk hinterlegen.");
+            if (categoryKey === "bewerbung" && personnel.isBlacklisted(interaction.member)) return await interaction.editReply("Du kannst derzeit keine Bewerbung einreichen.");
             const firstName = interaction.fields.getTextInputValue("firstName").trim();
             const lastName = interaction.fields.getTextInputValue("lastName").trim();
             const phone = interaction.fields.getTextInputValue("phone").trim();
@@ -557,7 +559,7 @@ client.on("interactionCreate", async interaction => {
             await interaction.editReply({
                 content:
                     `Dein Ticket wurde erfolgreich erstellt: ${ticketChannel}\n\n` +
-                    `Ticketnummer: **${ticketNumber}**` + (nickname.notice ? `\n${nickname.notice}` : "")
+                    (categoryKey === "bewerbung" ? "" : `Ticketnummer: **${ticketNumber}**`) + (nickname.notice ? `\n${nickname.notice}` : "")
             });
 
             console.log(`Ticket ${ticketNumber} erstellt: ${ticketChannel.name}`);
@@ -599,6 +601,7 @@ client.on("interactionCreate", async interaction => {
         const ticket = ticketData[interaction.channelId];
 
         if (!ticket) return;
+        if (ticket.categoryKey === "bewerbung" && ["lja_takeover", "lja_release", "lja_wait"].includes(customId)) return await personnel.handleApplicationAssignment(interaction, ticket);
         if (ticket.categoryKey === "bewerbung" && !personnel.allowed(interaction.member)) return await interaction.reply({content: "Diese Aktion ist nur für die Personalverwaltung erlaubt.", flags: 64});
         if (ticket.closed) return await interaction.reply({content: "Dieses Ticket ist bereits geschlossen.", flags: 64});
         if (require("./ticket-close-state").locks.has(interaction.channelId)) return await interaction.reply({content: "Dieses Ticket wird gerade geschlossen.", flags: 64});
@@ -607,7 +610,7 @@ client.on("interactionCreate", async interaction => {
         // TICKET ÜBERNEHMEN
         // ==================================
 
-        if (["strafverteidigung", "klage"].includes(ticket.categoryKey) && ["lja_takeover", "lja_release", "lja_wait"].includes(customId)) return await personnel.handleAssignment(interaction, ticket);
+        if (["strafverteidigung", "klage", "beratung"].includes(ticket.categoryKey) && ["lja_takeover", "lja_release", "lja_wait"].includes(customId)) return await personnel.handleAssignment(interaction, ticket);
 
         if (customId === "lja_takeover") {
 

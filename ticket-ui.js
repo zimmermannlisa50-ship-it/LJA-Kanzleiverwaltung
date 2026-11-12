@@ -2,6 +2,7 @@ const {EmbedBuilder,ActionRowBuilder,ButtonBuilder,ButtonStyle}=require('discord
 const getTicketStatus=require('./ticket-workflow').status;
 function truncate(value,maxLength=1024){const text=String(value??'');return text.length>maxLength?text.slice(0,maxLength-3)+'...':text;}
 function buildTicketEmbed(ticket) {
+    if(ticket.categoryKey === "bewerbung") return require("./personnel/applications-ui").embed(ticket);
     const status = getTicketStatus(ticket);
 
     return new EmbedBuilder()
@@ -124,7 +125,7 @@ function buildTicketComponents(ticket) {
     );
 
     rows.push(firstRow, secondRow);
-    if (["strafverteidigung", "klage"].includes(ticket.categoryKey)) {
+    if (["strafverteidigung", "klage", "beratung"].includes(ticket.categoryKey)) {
         const hr = require("./personnel/ui");
         rows.push(hr.row(hr.button("guestAdd", "PERSON HINZUFÜGEN", hr.ButtonStyle.Secondary, ticket.channelId), hr.button("guestRemove", "PERSON ENTFERNEN", hr.ButtonStyle.Secondary, ticket.channelId)));
     }
