@@ -119,5 +119,16 @@
     "changed": [
       "Registrierung direkt ins Kanzleiregelwerk integriert: Akzeptieren → IC-Formular → Bürgerrolle. Separates Registrierungspanel entfernt."
     ]
+  },
+  {
+    "id": "ticket-status-names-confirmation",
+    "date": "2026-11-12",
+    "title": "Ticketsystem",
+    "changed": [
+      "Notfall- und Staatshaftungstickets: Status-Emoji, gemeinsame fortlaufende Nummer und IC-Name im Kanalnamen."
+    ],
+    "fixed": [
+      "Schließen erst nach Bestätigung; HTML-Transkript mit vollständigem Verlauf und Wiederherstellung der Schreibrechte bei Transkriptfehlern."
+    ]
   }
 ]

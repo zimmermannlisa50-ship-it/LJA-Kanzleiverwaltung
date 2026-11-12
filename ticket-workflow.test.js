@@ -1,0 +1,9 @@
+﻿const assert=require('node:assert/strict');const w=require('./ticket-workflow');
+(async()=>{const t={categoryKey:'klage',ticketNumber:'0007',firstName:'Lisa',lastName:'Müller'};
+assert.equal(w.name(t),'🔴-0007-lisa-muller');assert(w.name({...t,handlerId:'h'}).startsWith('🟡-'));assert(w.name({...t,waiting:true}).startsWith('🟠-'));assert(w.name({...t,completed:true,handlerId:'h'}).startsWith('🟢-'));assert(w.name({...t,closed:true,completed:true}).startsWith('⚫-'));assert.equal(w.name({...t,categoryKey:'bewerbung'}),null);
+const ui=require('./ticket-ui'),full={...t,userId:'u',subject:'Test',facts:'Sachverhalt',categoryLabel:'Klage gegen Staat'};const display=ui.buildTicketEmbed({...full,completed:true,handlerId:'h'}).toJSON();assert(display.fields.find(f=>f.name==='Bearbeitungsstatus').value.startsWith('Erledigt'));const components=ui.buildTicketComponents(full).flatMap(r=>r.toJSON().components);assert(components.find(c=>c.label==='Ticket schließen').custom_id.startsWith('lja_close_v2:'));assert.deepEqual(ui.buildTicketComponents({...full,closed:true}),[]);
+const counters={strafverteidigung:8,klage:5,bewerbung:4};assert.equal(w.number(counters,'klage'),'0009');assert.equal(w.number(counters,'strafverteidigung'),'0010');assert.equal(w.number(counters,'bewerbung'),'0005');assert.equal(w.number(counters,'klage',[{categoryKey:'klage',ticketNumber:'0020'}]),'0021');
+let resolve;const calls=[];const channel={id:'test',name:w.name(t),setName:async n=>{calls.push(n);if(calls.length===1)await new Promise(r=>resolve=r);}};
+w.syncName(channel,{...t,handlerId:'h'});w.syncName(channel,t);resolve();await new Promise(setImmediate);assert.deepEqual(calls,[w.name({...t,handlerId:'h'}),w.name(t)]);
+console.log('OK: Statusnamen, gemeinsamer fortlaufender Zähler, bestehende Nummern und schnelle Statuswechsel geprüft.');})().catch(e=>{console.error(e);process.exitCode=1;});
+

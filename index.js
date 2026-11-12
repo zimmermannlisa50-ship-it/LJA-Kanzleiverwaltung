@@ -20,6 +20,7 @@ const {
 
 const fs = require("fs");
 const path = require("path");
+const ticketWorkflow = require("./ticket-workflow");
 
 // ==========================================
 // LIBERTY JUSTICE ASSOCIATES
@@ -176,193 +177,16 @@ function formatTicketNumber(number) {
 // TICKET-STATUS
 // ==========================================
 
-function getTicketStatus(ticket) {
-    if (ticket.closed) {
-        return {
-            emoji: "⚫",
-            title: "Geschlossen",
-            color: 0x555555
-        };
-    }
-
-    if (ticket.completed) {
-        return {
-            emoji: "🟢",
-            title: "Erledigt",
-            color: 0x2ECC71
-        };
-    }
-
-    if (ticket.handlerId) {
-        return {
-            emoji: "🟡",
-            title: "In Bearbeitung",
-            color: 0xF1C40F
-        };
-    }
-
-    return {
-        emoji: "🔴",
-        title: "Wartet auf Bearbeitung",
-        color: 0xE74C3C
-    };
-}
+const getTicketStatus = ticketWorkflow.status;
 
 // ==========================================
 // TICKET-EMBED ERSTELLEN
 // ==========================================
 
-function buildTicketEmbed(ticket) {
-    const status = getTicketStatus(ticket);
-
-    return new EmbedBuilder()
-        .setColor(status.color)
-        .setTitle(`${status.emoji} LIBERTY JUSTICE ASSOCIATES`)
-        .setDescription(
-            `**${ticket.categoryLabel}**\n\n` +
-            `Vielen Dank für deine Kontaktaufnahme mit unserer Kanzlei.`
-        )
-        .addFields(
-            {
-                name: "Mandant",
-                value: `<@${ticket.userId}>`,
-                inline: true
-            },
-            {
-                name: "Ticketnummer",
-                value: ticket.ticketNumber,
-                inline: true
-            },
-            {
-                name: "Bearbeitungsstatus",
-                value: ticket.handlerId
-                    ? `Übernommen von <@${ticket.handlerId}>`
-                    : status.title,
-                inline: false
-            },
-            {
-                name: "IC-Vorname",
-                value: truncate(ticket.firstName),
-                inline: true
-            },
-            {
-                name: "IC-Nachname",
-                value: truncate(ticket.lastName),
-                inline: true
-            },
-            {
-                name: "IC-Telefonnummer", value: ticket.phone || "Nicht hinterlegt", inline: false
-            },
-            {
-                name: "Betreff des Anliegens",
-                value: truncate(ticket.subject),
-                inline: false
-            },
-            {
-                name: "DOJ-Aktenzeichen",
-                value: ticket.dojCaseNumber || "Noch nicht hinterlegt",
-                inline: false
-            },
-            {
-                name: "Sachverhalt",
-                value: truncate(ticket.facts),
-                inline: false
-            },
-            {
-                name: "Abschluss",
-                value: ticket.paymentType || "Noch nicht abgeschlossen",
-                inline: false
-            }
-        )
-        .setFooter({
-            text: "Liberty Justice Associates | Kanzleiverwaltung"
-        })
-        .setTimestamp();
-}
-
-// ==========================================
-// TICKET-BUTTONS
-// ==========================================
-
-function buildTicketComponents(ticket) {
-    if (ticket.closed) {
-        return [];
-    }
-
-    const rows = [];
-
-    const firstRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId("lja_takeover")
-            .setLabel("Übernehmen")
-            .setEmoji("📥")
-            .setStyle(ButtonStyle.Primary)
-            .setDisabled(Boolean(ticket.handlerId) || ticket.completed),
-
-        new ButtonBuilder()
-            .setCustomId("lja_release")
-            .setLabel("Freigeben")
-            .setEmoji("🔓")
-            .setStyle(ButtonStyle.Secondary)
-            .setDisabled(!ticket.handlerId || ticket.completed),
-
-        new ButtonBuilder()
-            .setCustomId("lja_wait")
-            .setLabel("Warten")
-            .setEmoji("⏳")
-            .setStyle(ButtonStyle.Secondary)
-            .setDisabled(!ticket.handlerId || ticket.completed)
-    );
-
-    const secondRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId("lja_case_number")
-            .setLabel("DOJ-Aktenzeichen")
-            .setEmoji("📁")
-            .setStyle(ButtonStyle.Secondary),
-
-        new ButtonBuilder()
-            .setCustomId("lja_done")
-            .setLabel("Erledigt")
-            .setEmoji("✅")
-            .setStyle(ButtonStyle.Success)
-            .setDisabled(ticket.completed),
-
-        new ButtonBuilder()
-            .setCustomId("lja_close")
-            .setLabel("Ticket schließen")
-            .setEmoji("🔒")
-            .setStyle(ButtonStyle.Danger)
-    );
-
-    rows.push(firstRow, secondRow);
-
-    if (ticket.completed && !ticket.paymentType) {
-        const thirdRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId("lja_pro_bono")
-                .setLabel("Pro bono")
-                .setEmoji("⚖️")
-                .setStyle(ButtonStyle.Success),
-
-            new ButtonBuilder()
-                .setCustomId("lja_paid")
-                .setLabel("Rechnung bezahlt")
-                .setEmoji("💶")
-                .setStyle(ButtonStyle.Success)
-        );
-
-        rows.push(thirdRow);
-    }
-
-    return rows;
-}
-
-// ==========================================
-// TICKET-NACHRICHT AKTUALISIEREN
-// ==========================================
+const { buildTicketEmbed, buildTicketComponents } = require("./ticket-ui");
 
 async function updateTicketMessage(channel, ticket) {
+    ticketWorkflow.syncName(channel, ticket);
     if (!ticket.messageId) return;
 
     try {
@@ -398,152 +222,7 @@ function addTicketEvent(ticket, event, userId, details = "") {
 // ==========================================
 
 async function createHtmlTranscript(channel, ticket) {
-    const messages = [];
-    let lastMessageId;
-
-    // Nachrichten aus dem Ticket abrufen
-    while (true) {
-        const options = { limit: 100 };
-
-        if (lastMessageId) {
-            options.before = lastMessageId;
-        }
-
-        const batch = await channel.messages.fetch(options);
-
-        if (batch.size === 0) break;
-
-        messages.push(...batch.values());
-        lastMessageId = batch.last().id;
-
-        if (messages.length >= 1000) break;
-    }
-
-    // Chronologische Reihenfolge herstellen
-    messages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-
-    const messageHtml = messages.map(message => {
-        const author = escapeHtml(
-            message.member?.displayName ||
-            message.author?.username ||
-            "Unbekannt"
-        );
-
-        const content = escapeHtml(message.content || "")
-            .replace(/\n/g, "<br>");
-
-        const timestamp = new Date(message.createdTimestamp)
-            .toLocaleString("de-DE");
-
-        const attachments = [...message.attachments.values()]
-            .map(file =>
-                `<a href="${escapeHtml(file.url)}">${escapeHtml(file.name)}</a>`
-            )
-            .join("<br>");
-
-        return `
-            <div class="message">
-                <div class="author">${author}</div>
-                <div class="time">${timestamp}</div>
-                <div class="content">${content}</div>
-                ${attachments ? `<div class="attachments">${attachments}</div>` : ""}
-            </div>
-        `;
-    }).join("");
-
-    const html = `
-<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<title>LJA Ticket ${escapeHtml(ticket.ticketNumber)}</title>
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #111318;
-        color: #eeeeee;
-        padding: 30px;
-    }
-
-    h1 {
-        color: #d4af37;
-        border-bottom: 1px solid #d4af37;
-        padding-bottom: 15px;
-    }
-
-    .metadata {
-        background: #20232b;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 25px;
-        line-height: 1.8;
-    }
-
-    .message {
-        background: #20232b;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 12px;
-    }
-
-    .author {
-        color: #d4af37;
-        font-weight: bold;
-    }
-
-    .time {
-        color: #999999;
-        font-size: 12px;
-        margin: 4px 0 10px;
-    }
-
-    .content {
-        white-space: normal;
-        overflow-wrap: anywhere;
-    }
-
-    .attachments {
-        margin-top: 10px;
-    }
-
-    a {
-        color: #d4af37;
-    }
-</style>
-</head>
-
-<body>
-
-<h1>LIBERTY JUSTICE ASSOCIATES</h1>
-<h2>Ticket-Transkript</h2>
-
-<div class="metadata">
-    <strong>Ticketnummer:</strong> ${escapeHtml(ticket.ticketNumber)}<br>
-    <strong>Kategorie:</strong> ${escapeHtml(ticket.categoryLabel)}<br>
-    <strong>Mandant:</strong> ${escapeHtml(ticket.firstName)} ${escapeHtml(ticket.lastName)}<br>
-    <strong>Discord-Nutzer:</strong> ${escapeHtml(ticket.userId)}<br>
-    <strong>Betreff:</strong> ${escapeHtml(ticket.subject)}<br>
-    <strong>DOJ-Aktenzeichen:</strong> ${escapeHtml(ticket.dojCaseNumber || "Nicht hinterlegt")}<br>
-    <strong>Status:</strong> ${escapeHtml(getTicketStatus(ticket).title)}<br>
-    <strong>Erstellt am:</strong> ${new Date(ticket.createdAt).toLocaleString("de-DE")}
-</div>
-
-<h2>Nachrichtenverlauf</h2>
-
-${messageHtml}
-
-</body>
-</html>
-    `;
-
-    const fileName = `ticket-${ticket.ticketNumber}-transkript.html`;
-    const filePath = path.join(LOG_DIR, fileName);
-
-    fs.writeFileSync(filePath, html, "utf8");
-
-    return new AttachmentBuilder(filePath, {
-        name: fileName
-    });
+    return require("./ticket-transcript")(channel, ticket, { directory: LOG_DIR });
 }
 // ==========================================
 // DISCORD-BOT INITIALISIEREN
@@ -776,16 +455,10 @@ client.on("interactionCreate", async interaction => {
             // Nummer für die jeweilige Kategorie erhöhen
             const counters = readJson(COUNTER_FILE);
 
-            counters[categoryKey] = (counters[categoryKey] || 0) + 1;
-
+            const ticketNumber = ticketWorkflow.number(counters, categoryKey, Object.values(getTicketData()));
             writeJson(COUNTER_FILE, counters);
-
-            const ticketNumber = formatTicketNumber(counters[categoryKey]);
-
-            // Kanalnamen erstellen
-            const channelName =
-                `${ticketNumber}-${cleanName(categoryKey)}-${cleanName(firstName)}-${cleanName(lastName)}`
-                .slice(0, 100);
+            const channelName = ticketWorkflow.name({ categoryKey, ticketNumber, firstName, lastName }) ||
+                `${ticketNumber}-${cleanName(categoryKey)}-${cleanName(firstName)}-${cleanName(lastName)}`.slice(0, 100);
 
             // Ticketkanal erstellen
             const ticketChannel = await interaction.guild.channels.create({
@@ -911,11 +584,15 @@ client.on("interactionCreate", async interaction => {
         if (!interaction.isButton() && !interaction.isModalSubmit()) return;
 
         const customId = interaction.customId;
+        if (!["lja_takeover", "lja_release", "lja_wait", "lja_case_number", "lja_done", "lja_pro_bono", "lja_paid", "lja_case_number_modal"].includes(customId)) return;
+
 
         const ticketData = getTicketData();
         const ticket = ticketData[interaction.channelId];
 
         if (!ticket) return;
+        if (ticket.closed) return await interaction.reply({content: "Dieses Ticket ist bereits geschlossen.", flags: 64});
+        if (require("./ticket-close-state").locks.has(interaction.channelId)) return await interaction.reply({content: "Dieses Ticket wird gerade geschlossen.", flags: 64});
 
         // ==================================
         // TICKET ÜBERNEHMEN
@@ -944,7 +621,9 @@ client.on("interactionCreate", async interaction => {
                 });
             }
 
+            await interaction.deferReply({ flags: 64 });
             ticket.handlerId = interaction.user.id;
+            ticket.waiting = false;
 
             addTicketEvent(
                 ticket,
@@ -956,7 +635,7 @@ client.on("interactionCreate", async interaction => {
 
             await updateTicketMessage(interaction.channel, ticket);
 
-            return interaction.reply({
+            return interaction.editReply({
                 content: `Du hast Ticket **${ticket.ticketNumber}** übernommen.`,
                 ephemeral: true
             });
@@ -992,7 +671,9 @@ client.on("interactionCreate", async interaction => {
                 });
             }
 
+            await interaction.deferReply({ flags: 64 });
             ticket.handlerId = null;
+            ticket.waiting = false;
 
             addTicketEvent(
                 ticket,
@@ -1004,7 +685,7 @@ client.on("interactionCreate", async interaction => {
 
             await updateTicketMessage(interaction.channel, ticket);
 
-            return interaction.reply({
+            return interaction.editReply({
                 content: "Das Ticket wurde wieder freigegeben.",
                 ephemeral: true
             });
@@ -1033,7 +714,9 @@ client.on("interactionCreate", async interaction => {
                 });
             }
 
+            await interaction.deferReply({ flags: 64 });
             ticket.handlerId = null;
+            ticket.waiting = true;
 
             addTicketEvent(
                 ticket,
@@ -1045,7 +728,7 @@ client.on("interactionCreate", async interaction => {
 
             await updateTicketMessage(interaction.channel, ticket);
 
-            return interaction.reply({
+            return interaction.editReply({
                 content: "Das Ticket wurde zurückgestellt und wartet auf eine weitere Bearbeitung.",
                 ephemeral: true
             });
@@ -1113,7 +796,9 @@ client.on("interactionCreate", async interaction => {
                 });
             }
 
+            await interaction.deferReply({ flags: 64 });
             ticket.completed = true;
+            ticket.waiting = false;
 
             addTicketEvent(
                 ticket,
@@ -1130,7 +815,7 @@ client.on("interactionCreate", async interaction => {
                     "Ihr Anliegen wurde geklärt. Vielen Dank für Ihr Vertrauen in Liberty Justice Associates."
             });
 
-            return interaction.reply({
+            return interaction.editReply({
                 content: "Das Ticket wurde als erledigt markiert.",
                 ephemeral: true
             });
@@ -1245,176 +930,13 @@ client.on("interactionCreate", async interaction => {
 // ==========================================
 
 client.on("interactionCreate", async interaction => {
-
-    try {
-
-        if (!interaction.isButton()) return;
-
-        const customId = interaction.customId;
-
-        if (
-            customId !== "lja_close" &&
-            customId !== "lja_close_confirm" &&
-            customId !== "lja_close_cancel"
-        ) {
-            return;
-        }
-
-        const ticketData = getTicketData();
-        const ticket = ticketData[interaction.channelId];
-
-        if (!ticket) {
-            return interaction.reply({
-                content: "Die Ticketdaten konnten nicht gefunden werden.",
-                ephemeral: true
-            });
-        }
-
-        // ==================================
-        // BERECHTIGUNG PRÜFEN
-        // ==================================
-
-        const isCreator = interaction.user.id === ticket.userId;
-        const isAssignedHandler =
-            interaction.user.id === ticket.handlerId;
-
-        const isAuthorized =
-            isCreator ||
-            isAssignedHandler ||
-            isLeadership(interaction.member);
-
-        if (!isAuthorized) {
-            return interaction.reply({
-                content: "Du bist nicht berechtigt, dieses Ticket zu schließen.",
-                ephemeral: true
-            });
-        }
-
-        if (ticket.closed) {
-            return interaction.reply({
-                content: "Dieses Ticket ist bereits geschlossen.",
-                ephemeral: true
-            });
-        }
-
-        // ==================================
-        // SCHLIESSEN: BESTÄTIGUNG ANZEIGEN
-        // ==================================
-
-        if (customId === "lja_close") {
-
-            const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId("lja_close_confirm")
-                    .setLabel("Ja, Ticket schließen")
-                    .setStyle(ButtonStyle.Danger),
-
-                new ButtonBuilder()
-                    .setCustomId("lja_close_cancel")
-                    .setLabel("Abbrechen")
-                    .setStyle(ButtonStyle.Secondary)
-            );
-
-            return interaction.reply({
-                content:
-                    "Möchtest du dieses Ticket wirklich schließen?\n" +
-                    "Nach der Bestätigung wird der Kanal archiviert und der Mandant kann keine Nachrichten mehr senden.",
-                components: [row],
-                ephemeral: true
-            });
-        }
-
-        // ==================================
-        // SCHLIESSEN: ABBRECHEN
-        // ==================================
-
-        if (customId === "lja_close_cancel") {
-            return interaction.update({
-                content: "Das Schließen des Tickets wurde abgebrochen.",
-                components: []
-            });
-        }
-
-        // ==================================
-        // SCHLIESSEN: BESTÄTIGEN
-        // ==================================
-
-        if (customId === "lja_close_confirm") {
-
-            await interaction.deferUpdate();
-
-            ticket.closed = true;
-
-            addTicketEvent(
-                ticket,
-                "Ticket geschlossen und archiviert",
-                interaction.user.id
-            );
-
-            saveTicketData(ticketData);
-
-            // HTML-Transkript erstellen
-            const transcript = await createHtmlTranscript(
-                interaction.channel,
-                ticket
-            );
-
-            // Transkript im Ticket hochladen
-            await interaction.channel.send({
-                content: "📁 **Ticket-Transkript:** Das vollständige Gespräch wurde archiviert.",
-                files: [transcript]
-            });
-
-            // Mandanten-Schreibrechte entfernen
-            await interaction.channel.permissionOverwrites.edit(
-                ticket.userId,
-                {
-                    SendMessages: false,
-                    AttachFiles: false
-                }
-            );
-
-            // Ticketnachricht aktualisieren und Buttons entfernen
-            await updateTicketMessage(interaction.channel, ticket);
-
-            const ticketMessage = await interaction.channel.messages.fetch(
-                ticket.messageId
-            );
-
-            await ticketMessage.edit({
-                embeds: [buildTicketEmbed(ticket)],
-                components: []
-            });
-
-            // Kanal umbenennen
-            const archivedName = `geschlossen-${interaction.channel.name}`
-                .slice(0, 100);
-
-            await interaction.channel.setName(archivedName);
-
-            // Bestätigung anzeigen
-            await interaction.editReply({
-                content: "Das Ticket wurde erfolgreich geschlossen und archiviert.",
-                components: []
-            });
-
-            console.log(
-                `Ticket ${ticket.ticketNumber} wurde geschlossen und archiviert.`
-            );
-
-            return;
-        }
-
-    } catch (error) {
-        console.error("Fehler beim Schließen des Tickets:", error);
-
-        if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
-            await interaction.reply({
-                content: "Das Ticket konnte nicht geschlossen werden.",
-                ephemeral: true
-            }).catch(() => {});
-        }
-    }
+    const modulePath = require.resolve("./ticket-close"); delete require.cache[modulePath];
+    await require(modulePath)(interaction, {
+        owner: registrationStore.read().instanceId || "local",
+        getTickets: getTicketData, saveTickets: saveTicketData, isLeadership,
+        update: updateTicketMessage, transcript: createHtmlTranscript, addEvent: addTicketEvent,
+        workflow: ticketWorkflow
+    });
 });
 // ==========================================
 // BOT-LOGIN
@@ -1427,6 +949,9 @@ if (!TOKEN) {
 
 client.on("error", error => console.error("Discord-Clientfehler:", error.message));
 client.login(TOKEN).catch(error => { console.error("Bot-Login fehlgeschlagen:", error.message); process.exitCode = 1; });
+
+
+
 
 
 
