@@ -111,16 +111,14 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  const m=await c.send({content:`<@&${APPROVER}>`,allowedMentions:{roles:[APPROVER]},embeds:[embed('⚡ Rollenanfrage',`**IC-Name:** ${first} ${last}\n**Discord:** <@${i.user.id}>\n**Discord-ID:** ${i.user.id}\n**Gewünschte Rolle:** ${ROLES[role]}\n**Status:** Offen`)],components:[row(button('lja_role_accept','ANNEHMEN',ButtonStyle.Success),button('lja_role_reject','ABLEHNEN',ButtonStyle.Danger))]});
  const s=state();s.requests||={};s.requests[m.id]={user:i.user.id,role,first,last,status:'open'};save(s);return i.editReply(`Rollenanfrage erstellt: ${c}`);}
  if(['lja_role_accept','lja_role_reject'].includes(i.customId)){
- if(!admin(i)&&!i.member.roles.cache.has(APPROVER))return i.reply({content:'Keine Berechtigung zur Freigabe.',ephemeral:true});
- if(locks.has(i.message.id))return i.reply({content:'Anfrage wird bereits bearbeitet.',ephemeral:true});locks.add(i.message.id);
- try{await i.deferReply({ephemeral:true});const s=state(),r=s.requests?.[i.message.id];if(!r||r.status!=='open')return i.editReply('Anfrage wurde bereits entschieden.');const accept=i.customId==='lja_role_accept';
- if(accept){if(!ROLES[r.role])throw Error('Rolle nicht freigegeben.');const member=await i.guild.members.fetch(r.user);await member.roles.add(r.role,`Freigegeben von ${i.user.tag} (${i.user.id})`);}
- r.status=accept?'accepted':'rejected';r.reviewer=i.user.id;r.reviewedAt=new Date().toISOString();const latest=state();latest.requests[i.message.id]=r;save(latest);
- await i.message.edit({embeds:[embed('⚡ Rollenanfrage',`**IC-Name:** ${r.first} ${r.last}\n**Discord:** <@${r.user}> (${r.user})\n**Rolle:** ${ROLES[r.role]}\n**Status:** ${accept?'Angenommen':'Abgelehnt'}\n**Entschieden von:** ${i.user.tag} · <@${i.user.id}> · ID: ${i.user.id}`)],components:[],allowedMentions:{parse:[]}});await i.editReply(accept?'Rolle vergeben.':'Anfrage abgelehnt.');}finally{locks.delete(i.message.id);}return;}
+ const modulePath=require.resolve('./role-decisions');delete require.cache[modulePath];
+ return await require(modulePath)(i,{client,ROLES,state,save,locks,authorized:admin(i)||i.member.roles.cache.has(APPROVER)});
+ }
  }catch(e){console.error('Panel-Interaktion:',e);const payload={content:'Aktion fehlgeschlagen: '+e.message,ephemeral:true};if(i.deferred||i.replied)await i.editReply({content:payload.content}).catch(()=>{});else await i.reply(payload).catch(()=>{});}});
  let timer;
- return {publish,chooseRole,async start(){await sweep();if(!timer){timer=setInterval(()=>sweep().catch(console.error),15000);timer.unref();}await all();await publish('changelog');const s=state();if(s.admin)await publish('admin',s.admin.channel);}};
+ return {publish,chooseRole,async start(){await sweep();if(!timer){timer=setInterval(()=>sweep().catch(console.error),15000);timer.unref();}if(process.env.LJA_SKIP_PANEL_REFRESH!=='1'){await all();await publish('changelog');const s=state();if(s.admin)await publish('admin',s.admin.channel);}}};
 };
+
 
 
 

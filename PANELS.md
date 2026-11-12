@@ -20,3 +20,5 @@ Rollenanfragen werden direkt als Nachricht mit Freigabe-Buttons im Textkanal 157
 
 Changelogs kurz halten: je Abschnitt höchstens wenige kurze Stichpunkte. Nur betroffene Komponenten aktualisieren. Reine Changelogänderungen mit `node update-changelogs.js` veröffentlichen; der laufende Bot wird dabei nicht neu gestartet.
 
+
+Rollenentscheidungen liegen in role-decisions.js und werden bei jedem Klick neu geladen. Änderungen daran benötigen künftig keinen Botneustart. LJA_SKIP_PANEL_REFRESH=1 überspringt die Panelveröffentlichung beim Start. Prüfung: node role-decisions.test.js.
