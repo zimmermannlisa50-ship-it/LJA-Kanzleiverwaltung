@@ -579,7 +579,7 @@ client.on("guildMemberUpdate", async (before, member) => {
     } catch (error) { console.error("Registrierungsfreigabe:", error.message); }
 });
 client.on("interactionCreate", async interaction => {
-    if (!["lja_register", "lja_register_form"].includes(interaction.customId)) return;
+    if (!interaction.customId?.startsWith("lja_reg:v2:")) return;
     const modulePath = require.resolve("./registration"); delete require.cache[modulePath];
     await require(modulePath).handle(client, interaction);
 });
@@ -1427,6 +1427,7 @@ if (!TOKEN) {
 
 client.on("error", error => console.error("Discord-Clientfehler:", error.message));
 client.login(TOKEN).catch(error => { console.error("Bot-Login fehlgeschlagen:", error.message); process.exitCode = 1; });
+
 
 
 

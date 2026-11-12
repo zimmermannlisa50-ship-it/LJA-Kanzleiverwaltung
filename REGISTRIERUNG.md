@@ -13,3 +13,5 @@ Die Änderungen sind lokal in `data/registration-rights-audit.json` und im Tages
 Die Erstaktivierung benötigt einmal den neuen Bot-Handler. `LJA_SKIP_PANEL_REFRESH=1` verhindert dabei die erneute Veröffentlichung bestehender Panels. Spätere Änderungen an `registration.js` werden beim Buttonklick automatisch geladen. Nur das Registrierungspanel wird neu veröffentlicht.
 
 Prüfungen: `node registration.test.js`, `node panels.test.js`, `node changelog.test.js`, `node role-decisions.test.js`.
+
+Registrierungsbuttons und Formulare tragen eine lokale Instanzkennung. Andere oder inaktive Instanzen ignorieren diese Interaktionen. Ein bereits gepostetes Panel mit node update-registration.js gezielt aktualisieren. Mehrfachbetrieb des Bots sollte unabhängig davon vermieden werden; Registrierungsdaten benötigen einen dauerhaften Datenspeicher am Hostingort.

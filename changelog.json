@@ -95,5 +95,13 @@
     "permissions": [
       "Bürgerbereiche sind erst nach Registrierung sichtbar. Willkommen und Regelwerk bleiben zugänglich. 170 Bestandsmitglieder bleiben ausgenommen; ihre bisherige Kanalsichtbarkeit wurde geprüft."
     ]
+  },
+  {
+    "id": "registration-instance-routing",
+    "date": "2026-11-12",
+    "title": "Registrierungsbutton",
+    "fixed": [
+      "Registrierungsbutton der aktiven Botinstanz zugeordnet; nicht eingerichtete Instanzen antworten nicht mehr dazwischen."
+    ]
   }
 ]
