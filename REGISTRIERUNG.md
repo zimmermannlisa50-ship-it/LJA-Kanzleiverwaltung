@@ -16,3 +16,5 @@ Prüfungen: `node registration.test.js`, `node panels.test.js`, `node changelog.
 
 Registrierungsbuttons und Formulare tragen eine lokale Instanzkennung. Andere oder inaktive Instanzen ignorieren diese Interaktionen. Ein bereits gepostetes Panel mit node update-registration.js gezielt aktualisieren. Mehrfachbetrieb des Bots sollte unabhängig davon vermieden werden; Registrierungsdaten benötigen einen dauerhaften Datenspeicher am Hostingort.
 
+
+Automatische Spitznamen: Nach erfolgreicher Registrierung und nach gespeicherten Ticketangaben wird der Server-Spitzname auf IC-Vorname IC-Nachname gesetzt. Die 16 vom Nutzer ausgewählten Mitarbeiterrollen stehen in nickname-config.json; bereits eine davon schließt eine Umbenennung aus. Bots bleiben ausgenommen. Rollen werden frisch geprüft. Fehlende Rechte, Rollenhierarchie und Namen über 32 Zeichen verhindern nur die Umbenennung, nicht die Profilspeicherung. Keine rückwirkende Sammelumbenennung. Prüfung: node nicknames.test.js.

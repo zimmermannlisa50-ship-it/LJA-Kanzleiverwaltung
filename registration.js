@@ -25,7 +25,7 @@ async function handle(client,i){
 
  if(store.exempt(i.user.id))return await i.reply({content:'Du bist Bestandsmitglied und musst dich nicht registrieren.',flags:64});
  if(i.customId===buttonId()){
- if(store.profile(i.user.id)){await member.roles.add(CITIZEN,'Registrierung bereits abgeschlossen');return await i.reply({content:'Du bist bereits registriert.',flags:64});}
+ if(store.profile(i.user.id)){await i.deferReply({flags:64});await member.roles.add(CITIZEN,'Registrierung bereits abgeschlossen');const result=await require('./nicknames').sync(member,store.profile(i.user.id));return await i.editReply('Du bist bereits registriert.'+(result.notice?'\n'+result.notice:''));}
  const modal=new ModalBuilder().setCustomId(formId()).setTitle('IC-Registrierung');
  for(const [id,label]of [['firstName','IC-Vorname'],['lastName','IC-Nachname'],['phone','IC-Telefonnummer']])modal.addComponents(row(new TextInputBuilder().setCustomId(id).setLabel(label).setStyle(TextInputStyle.Short).setMaxLength(50).setRequired(true)));
  return await i.showModal(modal);
@@ -38,7 +38,8 @@ async function handle(client,i){
  // Erst Daten sichern, dann freischalten. Bei Rollenfehlern ermöglicht erneutes Klicken die Wiederholung.
  const latest=store.read();latest.profiles||={};latest.profiles[i.user.id]={firstName,lastName,phone,registeredAt:new Date().toISOString(),rulesAcceptedAt:new Date().toISOString()};store.write(latest);
  await member.roles.add(CITIZEN,'Kanzleiregelwerk akzeptiert und IC-Registrierung abgeschlossen');
- return await i.editReply('Registrierung abgeschlossen. Die Bürgerkanäle sind freigeschaltet. Deine IC-Daten werden für Tickets übernommen.');
+ const nickname=await require('./nicknames').sync(member,{firstName,lastName});
+ return await i.editReply('Registrierung abgeschlossen. Die Bürgerkanäle sind freigeschaltet. Deine IC-Daten werden für Tickets übernommen.'+(nickname.notice?'\n'+nickname.notice:''));
  }finally{locks.delete(i.user.id);}
  }catch(e){console.error('Registrierung:',e.code||e.message);const content='Registrierung fehlgeschlagen: '+e.message;if(i.replied||i.deferred)await i.editReply({content}).catch(()=>{});else await i.reply({content,flags:64}).catch(()=>{});}
 }
@@ -54,6 +55,9 @@ async function publish(client,{setup=false}={}){
  const registry=JSON.parse(fs.readFileSync(path.join(DATA_DIR,'panels.json'),'utf8'));const id=registry.regelwerk.ids.at(-1);const config=store.read();config.panelId=id;config.panelChannelId=RULES;store.write(config);return id;
 }
 module.exports={panel,handle,invite,publish,buttonId,formId,acceptanceRow};
+
+
+
 
 
 

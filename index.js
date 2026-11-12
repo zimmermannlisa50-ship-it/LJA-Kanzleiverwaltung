@@ -547,11 +547,12 @@ client.on("interactionCreate", async interaction => {
             allTickets[ticketChannel.id] = ticket;
             saveTicketData(allTickets);
             require("./ticket-profile").save(registrationStore, interaction.user.id, { firstName, lastName, phone });
+            const nickname = await require("./nicknames").sync(interaction.member, { firstName, lastName });
 
             await interaction.editReply({
                 content:
                     `Dein Ticket wurde erfolgreich erstellt: ${ticketChannel}\n\n` +
-                    `Ticketnummer: **${ticketNumber}**`
+                    `Ticketnummer: **${ticketNumber}**` + (nickname.notice ? `\n${nickname.notice}` : "")
             });
 
             console.log(`Ticket ${ticketNumber} erstellt: ${ticketChannel.name}`);
@@ -951,6 +952,7 @@ if (!TOKEN) {
 
 client.on("error", error => console.error("Discord-Clientfehler:", error.message));
 client.login(TOKEN).catch(error => { console.error("Bot-Login fehlgeschlagen:", error.message); process.exitCode = 1; });
+
 
 
 

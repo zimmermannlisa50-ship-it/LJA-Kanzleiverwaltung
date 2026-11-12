@@ -154,5 +154,13 @@
     "changed": [
       "Jede Ticketkategorie erhält eine eigene fortlaufende Nummer. Nach bestätigtem Schließen und erfolgreicher HTML-Archivierung wird der Ticketkanal gelöscht."
     ]
+  },
+  {
+    "id": "ic-nicknames-staff-exceptions",
+    "date": "2026-11-12",
+    "title": "IC-Spitznamen",
+    "added": [
+      "Automatische IC-Spitznamen bei Registrierung und Ticketangaben; 16 ausgewählte Mitarbeiterrollen und Bots bleiben ausgenommen."
+    ]
   }
 ]
