@@ -7,12 +7,9 @@ function number(counters,categoryKey,tickets=[]){
  const previous=Math.max(Number(counters[categoryKey])||0,...tickets.filter(t=>t.categoryKey===categoryKey).map(t=>Number(t.ticketNumber)||0));
  counters[categoryKey]=previous+1;return String(counters[categoryKey]).padStart(4,'0');
 }
-// Umbenennungen laufen getrennt von Interaktionsantworten. Discord kann Kanalnamen begrenzen.
-const renames=new Map();
-function syncName(channel,ticket){const desired=name(ticket);if(!desired)return;
- let state=renames.get(channel.id);if(state){state.desired=desired;return;}if(channel.name===desired)return;
- state={desired};renames.set(channel.id,state);
- (async()=>{let actual=channel.name;try{while(actual!==state.desired){const target=state.desired;await channel.setName(target,'Ticketstatus aktualisiert');actual=target;}}catch(e){console.error('Ticketname konnte nicht aktualisiert werden:',e.message);}finally{renames.delete(channel.id);}})();}
-module.exports={status,name,number,syncName,NAMED};
-
-
+// Namenslimits dürfen Statusnachrichten und Kategorieänderungen nicht blockieren.
+const createNameQueue=require('./ticket-name-queue');
+let nameQueue=createNameQueue({rename:(channel,target)=>channel.setName(target,'Ticketstatus aktualisiert'),onError:(id,error)=>require('./bot-diagnostics').error('Ticketname '+id,error)});
+function configureRenames(client){const {REST,Routes}=require('discord.js');const rest=new REST({version:'10',rejectOnRateLimit:()=>true}).setToken(client.token);nameQueue=createNameQueue({rename:async(channel,target)=>{await rest.patch(Routes.channel(channel.id),{body:{name:target},reason:'Ticketstatus aktualisiert'});},onDelay:(id,delay)=>console.log(JSON.stringify({time:new Date().toISOString(),event:'ticket_name_delayed',channelId:id,retryAfterMs:delay})),onError:(id,error)=>require('./bot-diagnostics').error('Ticketname '+id,error)});}
+function syncName(channel,ticket){nameQueue.request(channel,name(ticket));}
+module.exports={status,name,number,syncName,configureRenames,NAMED};

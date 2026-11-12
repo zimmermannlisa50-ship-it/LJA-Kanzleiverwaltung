@@ -304,9 +304,14 @@ async function registerCommands() {
 // ==========================================
 
 client.once("clientReady", async () => {
+    ticketWorkflow.configureRenames(client);
     console.log(`LJA-Kanzleiverwaltung online als ${client.user.tag}`);
 
     ensureStorage();
+    for (const ticket of Object.values(getTicketData()).filter(t => !t.closed && ticketWorkflow.NAMED.has(t.categoryKey))) {
+        const channel = await client.channels.fetch(ticket.channelId).catch(error => { if(error.code === 10003) return null; throw error; });
+        if(channel) await updateTicketMessage(channel, ticket);
+    }
     await registerCommands();
     await panels.start().catch(console.error);
     await personnel.start().catch(error => console.error("Personalverwaltung:", error.message));

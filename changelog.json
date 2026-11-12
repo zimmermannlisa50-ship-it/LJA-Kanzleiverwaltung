@@ -306,5 +306,15 @@
     "changed": [
       "Ticketnamen ergänzen zwischen Nummer und IC-Name: notfall, klage-staat oder allg-frage."
     ]
+  },
+  {
+    "id": "ticket-reassignment-rate-limits",
+    "date": "2026-11-13",
+    "fixed": [
+      "Übernahme/Freigabe: Status vor Mandatsindex aktualisieren; Kanalnamen nach Discord-Wartezeiten nur auf den neuesten Zustand setzen."
+    ],
+    "changed": [
+      "Offene Ticketanzeigen beim Botstart abgleichen; Umbenennungs-Wartezeiten gezielt protokollieren."
+    ]
   }
 ]
