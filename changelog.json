@@ -210,5 +210,18 @@
     "added": [
       "Automatische Mitarbeiterübersicht nach Rang mit Einstellungsdatum; fehlende Daten auf heute ergänzt."
     ]
+  },
+  {
+    "id": "former-personnel-transcripts",
+    "date": "2026-11-12",
+    "added": [
+      "Bei Kündigung vollständiges HTML-Transkript der Personalakte mit Link im Teamupdate; rückwirkend ergänzt."
+    ],
+    "changed": [
+      "Personalforen ausgeschiedener Mitarbeiter nach gesichertem Upload schreibgeschützt und Posts gesperrt."
+    ],
+    "permissions": [
+      "Personaltranskripte nur für Partner und Kanzleileitung zugänglich."
+    ]
   }
 ]
