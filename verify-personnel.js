@@ -7,6 +7,6 @@ client.once('clientReady',async()=>{try{const s=S.read();if(!s.enabled)throw Err
  if(!m.displayName.startsWith('LJA I '))warnings.push({user:m.id,reason:!m.manageable?'Discord-Hierarchie / Serverbesitzer':'Namenslänge oder manuelle Änderung'});
  }
  for(const [id,info]of Object.entries(s.lawyers)){const forum=g.channels.cache.get(info.forumId);if(forum?.type!==ChannelType.GuildForum)problems.push('Anwaltsforum fehlt: '+id);for(const other of employees.values()){if(other.id===id||other.permissions.has(P.Administrator)||R.has(other,C.LEADS))continue;if(forum?.permissionsFor(other).has(P.ViewChannel))problems.push('Fremdzugriff Anwaltsforum: '+other.id+' → '+id);}}
- console.log(JSON.stringify({enabled:s.enabled,employees:employees.size,files:Object.keys(s.employees).length,topics,lawyerForums:Object.keys(s.lawyers).length,problems,nicknameWarnings:warnings},null,2));if(problems.length)process.exitCode=1;
+ const administratorExceptions=g.members.cache.filter(m=>!m.user.bot&&!R.hr(m)&&m.permissions.has(P.Administrator)).map(m=>m.id);console.log(JSON.stringify({administratorExceptions,enabled:s.enabled,employees:employees.size,files:Object.keys(s.employees).length,topics,lawyerForums:Object.keys(s.lawyers).length,problems,nicknameWarnings:warnings},null,2));if(problems.length)process.exitCode=1;
  }catch(e){console.error(e.message);process.exitCode=1;}finally{client.destroy();}});
 client.login(process.env.DISCORD_TOKEN).catch(e=>{console.error(e.message);process.exitCode=1;});

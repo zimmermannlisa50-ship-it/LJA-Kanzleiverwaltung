@@ -179,5 +179,16 @@
       "Personalaktionen nur für die freigegebenen acht Personalrollen; Mitarbeiterbereiche nur für die jeweilige Person und Personalverwaltung.",
       "Zugeordnete Mandate sind für Mandant, Bearbeiter, Leitung/Partner und ausdrücklich hinzugefügte Personen sichtbar."
     ]
+  },
+  {
+    "id": "personnel-private-access-and-status",
+    "date": "2026-11-12",
+    "title": "Personalakten",
+    "changed": [
+      "Farbige Kreis-Tags und Unterlagenstatus im geschützten Mitarbeiteraustausch ergänzt."
+    ],
+    "permissions": [
+      "Personalakten und Personalaktionen nur für Partner und Kanzleileitung; Management und Sekretariat ausgeschlossen. Mitarbeiter behalten ausschließlich ihren eigenen separaten Austausch."
+    ]
   }
 ]
