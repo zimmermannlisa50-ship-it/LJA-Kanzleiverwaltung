@@ -32,7 +32,7 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  let payloads; let documentText;
  if(['philosophie','regelwerk','honorare'].includes(key)){
  documentText=fs.readFileSync(path.join(__dirname,key+'.txt'),'utf8');
- payloads=split(documentText).map(content=>({content,allowedMentions:{parse:[]}}));
+ payloads=require('./document-panels').render(key,documentText);
  if(key!=='honorare')payloads.at(-1).components=[row(button('lja_deco','IN KENNTNIS GENOMMEN',ButtonStyle.Success).setDisabled(true))];
  }else if(key==='tickets')payloads=[ticketPayload()];
  else if(key==='punkte')payloads=[{embeds:[embed('LIBERTY JUSTICE ASSOCIATES','**Punkteübersicht**\n\nErstelle einen Punkt, damit du schnell gefunden wirst. Dein Eintrag wird nach 3 Minuten automatisch gelöscht.')],components:[row(button('lja_point','PUNKT ERSTELLEN',ButtonStyle.Success))]}];
@@ -48,6 +48,8 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  if(old?.channel===channel.id&&old.ids?.includes(m.id))return true;
  if(m.components?.some(r=>r.components.some(c=>(componentIds[key]||[]).includes(c.customId))))return true;
  if(payloads.some(p=>p.content&&p.content===m.content))return true;
+ if(documentText&&split(documentText).includes(m.content))return true;
+ if(documentText&&require('./document-panels').matches(key,m))return true;
 
  return payloads.some(p=>p.embeds?.some(e=>m.embeds?.some(previous=>previous.title===e.data.title&&previous.description===e.data.description)));
  };
@@ -118,6 +120,7 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  let timer;
  return {publish,chooseRole,async start(){await sweep();if(!timer){timer=setInterval(()=>sweep().catch(console.error),15000);timer.unref();}if(process.env.LJA_SKIP_PANEL_REFRESH!=='1'){await all();await publish('changelog');const s=state();if(s.admin)await publish('admin',s.admin.channel);}}};
 };
+
 
 
 

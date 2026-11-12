@@ -103,5 +103,13 @@
     "fixed": [
       "Registrierungsbutton der aktiven Botinstanz zugeordnet; nicht eingerichtete Instanzen antworten nicht mehr dazwischen."
     ]
+  },
+  {
+    "id": "document-card-layout",
+    "date": "2026-11-12",
+    "title": "Infopanels",
+    "changed": [
+      "Preisliste, Kanzleiphilosophie und Regelwerk als goldene Karten gestaltet; Honorare und Beteiligungen in ausgerichteten Tabellen."
+    ]
   }
 ]
