@@ -10,7 +10,7 @@ Benötigte Botrechte: Kanäle sehen/verwalten, Nachrichten senden und lesen, Emb
 
 Bewerbungen entstehen in 1478007585784201351 (letzte ausdrücklich genannte Zuordnung). 1570448935992954921 ist für eine spätere Phase reserviert. Zusätzliche Bewerbungsauswahlen sind noch nicht definiert.
 
-Punkte und Freigaben werden in data/panels.json gespeichert. Abgelaufene Punkte werden beim Start und alle 15 Sekunden entfernt. Changelogs werden aus changelog.json automatisch veröffentlicht. Jede Änderung erhält eine neue eindeutige ID, Datum, Titel und passende Abschnitte added (Hinzugefügt), changed (Geändert), fixed (Behoben) und removed (Entfernt). Bestehende Einträge bleiben erhalten; Textkorrekturen aktualisieren die jeweilige Nachricht. Beim Start werden fehlende Einträge ergänzt; markierte vorhandene Einträge werden auch ohne lokale IDs erkannt. Künftige Änderungen müssen als neuer Eintrag dokumentiert werden.
+Punkte und Freigaben werden in data/panels.json gespeichert. Punktenachrichten laufen nach 3 Minuten ab. Abgelaufene Punkte werden beim Start und alle 15 Sekunden entfernt. Changelogs werden aus changelog.json automatisch veröffentlicht. Jede Änderung erhält eine neue eindeutige ID, Datum, Titel und passende Abschnitte added (Hinzugefügt), changed (Geändert), fixed (Behoben) und removed (Entfernt). Bestehende Einträge bleiben erhalten; Textkorrekturen aktualisieren die jeweilige Nachricht. Beim Start werden fehlende Einträge ergänzt; markierte vorhandene Einträge werden auch ohne lokale IDs erkannt. Künftige Änderungen müssen als neuer Eintrag dokumentiert werden.
 
 Prüfung: `node panels.test.js` und `node --check index.js`.
 
@@ -22,3 +22,4 @@ Changelogs kurz halten: je Abschnitt höchstens wenige kurze Stichpunkte. Nur be
 
 
 Rollenentscheidungen liegen in role-decisions.js und werden bei jedem Klick neu geladen. Änderungen daran benötigen künftig keinen Botneustart. LJA_SKIP_PANEL_REFRESH=1 überspringt die Panelveröffentlichung beim Start. Prüfung: node role-decisions.test.js.
+

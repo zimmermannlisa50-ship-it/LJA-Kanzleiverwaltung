@@ -52,5 +52,13 @@
     "fixed": [
       "Fehlende Anfragedaten werden wiederhergestellt; der Status wird nach Annahme oder Ablehnung zuverlässig aktualisiert."
     ]
+  },
+  {
+    "id": "points-3-minutes",
+    "date": "2026-11-12",
+    "title": "Punkte",
+    "changed": [
+      "Punktenachrichten werden nach 3 statt 30 Minuten gelöscht."
+    ]
   }
 ]

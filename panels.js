@@ -35,7 +35,7 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  payloads=split(documentText).map(content=>({content,allowedMentions:{parse:[]}}));
  if(key!=='honorare')payloads.at(-1).components=[row(button('lja_deco','IN KENNTNIS GENOMMEN',ButtonStyle.Success).setDisabled(true))];
  }else if(key==='tickets')payloads=[ticketPayload()];
- else if(key==='punkte')payloads=[{embeds:[embed('LIBERTY JUSTICE ASSOCIATES','**Punkteübersicht**\n\nErstelle einen Punkt, damit du schnell gefunden wirst. Dein Eintrag wird nach 30 Minuten automatisch gelöscht.')],components:[row(button('lja_point','PUNKT ERSTELLEN',ButtonStyle.Success))]}];
+ else if(key==='punkte')payloads=[{embeds:[embed('LIBERTY JUSTICE ASSOCIATES','**Punkteübersicht**\n\nErstelle einen Punkt, damit du schnell gefunden wirst. Dein Eintrag wird nach 3 Minuten automatisch gelöscht.')],components:[row(button('lja_point','PUNKT ERSTELLEN',ButtonStyle.Success))]}];
  else if(key==='admin')payloads=[{embeds:[embed('LIBERTY JUSTICE ASSOCIATES','**Botverwaltung**\n\nPanels gesammelt oder einzeln aktualisieren. Der Neustart verbindet den Bot neu und gleicht die Panels ab.')],components:[row(button('lja_admin_all','ALLE PANELS AKTUALISIEREN'),button('lja_admin_restart','BOT NEU STARTEN',ButtonStyle.Danger)),row(new StringSelectMenuBuilder().setCustomId('lja_admin_publish').setPlaceholder('Einzelnes Panel aktualisieren').addOptions(Object.keys(CHANNELS).filter(k=>k!=='changelog').map(k=>({label:k,value:k}))))]}];
  if(!payloads)throw Error('Unbekanntes Panel.');
  const old=state()[key];const ids=[];
@@ -100,7 +100,7 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  if(i.channelId!==CHANNELS.punkte)return;
  if(locks.has('point:'+i.user.id))return i.reply({content:'Dein Punkt wird bereits erstellt.',ephemeral:true});locks.add('point:'+i.user.id);
  try{await i.deferReply({ephemeral:true});const s=state();s.points||={};if(s.points[i.user.id])return i.editReply('Du hast bereits einen aktiven Punkt.');
- const msg=await i.channel.send({content:`• <@${i.user.id}> — ${i.user.username.replace(/[@*_`~|<>]/g,'')}\nWird nach 30 Minuten gelöscht.`,allowedMentions:{users:[i.user.id]}});s.points[i.user.id]={message:msg.id,expires:Date.now()+1800000};const latest=state();latest.points||={};latest.points[i.user.id]=s.points[i.user.id];save(latest);await i.editReply('Punkt erstellt.');}finally{locks.delete('point:'+i.user.id);}return;}
+ const msg=await i.channel.send({content:`• <@${i.user.id}> — ${i.user.username.replace(/[@*_`~|<>]/g,'')}\nWird nach 3 Minuten gelöscht.`,allowedMentions:{users:[i.user.id]}});s.points[i.user.id]={message:msg.id,expires:Date.now()+180000};const latest=state();latest.points||={};latest.points[i.user.id]=s.points[i.user.id];save(latest);await i.editReply('Punkt erstellt.');}finally{locks.delete('point:'+i.user.id);}return;}
  if(i.customId==='lja_role_select'){
  const role=i.values[0];if(!ROLES[role])throw Error('Ungültige Rolle.');
  const modal=new ModalBuilder().setCustomId('lja_role_form_'+role).setTitle('Rollenanfrage');for(const [id,label]of [['first','IC-Vorname'],['last','IC-Nachname']])modal.addComponents(row(new TextInputBuilder().setCustomId(id).setLabel(label).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(50)));return await i.showModal(modal);}
@@ -118,6 +118,7 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  let timer;
  return {publish,chooseRole,async start(){await sweep();if(!timer){timer=setInterval(()=>sweep().catch(console.error),15000);timer.unref();}if(process.env.LJA_SKIP_PANEL_REFRESH!=='1'){await all();await publish('changelog');const s=state();if(s.admin)await publish('admin',s.admin.channel);}}};
 };
+
 
 
 
