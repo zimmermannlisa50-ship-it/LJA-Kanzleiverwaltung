@@ -222,5 +222,12 @@
     "permissions": [
       "Geschlossene Akten nur für Partner/Leitung; Rechte im Transkriptkanal unverändert."
     ]
+  },
+  {
+    "id": "personnel-delete-after-transcript",
+    "date": "2026-11-12",
+    "changed": [
+      "Nach geprüftem Transkript und Teamupdate-Link wird die Personalakte gelöscht; auch rückwirkend."
+    ]
   }
 ]
