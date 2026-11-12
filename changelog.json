@@ -176,8 +176,7 @@
       "Kleiderordnung und Positionsbeschreibungen erneuert; bestehende Mitarbeiter übernommen."
     ],
     "permissions": [
-      "Personalaktionen nur für die freigegebenen acht Personalrollen; Mitarbeiterbereiche nur für die jeweilige Person und Personalverwaltung.",
-      "Zugeordnete Mandate sind für Mandant, Bearbeiter, Leitung/Partner und ausdrücklich hinzugefügte Personen sichtbar."
+      "Übernommene Mandate nur für Mandant, Bearbeiter, Leitung/Partner und Zusatzfreigaben sichtbar."
     ]
   },
   {
@@ -188,7 +187,7 @@
       "Farbige Kreis-Tags und Unterlagenstatus im geschützten Mitarbeiteraustausch ergänzt."
     ],
     "permissions": [
-      "Personalakten und Personalaktionen nur für Partner und Kanzleileitung; Management und Sekretariat ausgeschlossen. Mitarbeiter behalten ausschließlich ihren eigenen separaten Austausch."
+      "Personalverwaltung auf Partner und Kanzleileitung begrenzt; Management/Sekretariat ausgeschlossen."
     ]
   },
   {
@@ -215,13 +214,13 @@
     "id": "former-personnel-transcripts",
     "date": "2026-11-12",
     "added": [
-      "Bei Kündigung vollständiges HTML-Transkript der Personalakte mit Link im Teamupdate; rückwirkend ergänzt."
+      "Kündigung: HTML-Personalakte im Transkriptkanal, Link im Teamupdate; auch rückwirkend."
     ],
     "changed": [
-      "Personalforen ausgeschiedener Mitarbeiter nach gesichertem Upload schreibgeschützt und Posts gesperrt."
+      "Ausgeschiedene Personalforen nach gesichertem Transkript geschlossen."
     ],
     "permissions": [
-      "Personaltranskripte nur für Partner und Kanzleileitung zugänglich."
+      "Geschlossene Akten nur für Partner/Leitung; Rechte im Transkriptkanal unverändert."
     ]
   }
 ]
