@@ -125,10 +125,10 @@
     "date": "2026-11-12",
     "title": "Ticketsystem",
     "changed": [
-      "Notfall- und Staatshaftungstickets: Status-Emoji, gemeinsame fortlaufende Nummer und IC-Name im Kanalnamen."
+      "Notfall-/Amtshaftung: Status-Emoji, Nummer und IC-Name im Kanalnamen."
     ],
     "fixed": [
-      "Schließen erst nach Bestätigung; HTML-Transkript mit vollständigem Verlauf und Wiederherstellung der Schreibrechte bei Transkriptfehlern."
+      "Ticketabschluss mit Bestätigung, HTML-Verlauf und Wiederherstellung der Rechte bei Fehlern."
     ]
   },
   {
@@ -237,14 +237,21 @@
       "💬 Allgemeine Rechtsberatung und Bewerbungsblacklist mit Pflichtgrund, Rollenvergabe und Protokoll."
     ],
     "changed": [
-      "Anwaltsblöcke: übernommene Tickets unter dem Forum mit └; Freigabe entfernt die Zuordnung.",
-      "Bewerbungen: Status/Bearbeiter statt Nummer, DOJ-Aktenzeichen und Sachverhalt; Rangwahl bei Einstellung."
+      "Anwaltsblöcke: Tickets unter dem Forum mit └; Freigabe setzt die Zuordnung zurück.",
+      "Bewerbungen: Status/Bearbeiter ohne Nummer, DOJ oder Sachverhalt; Rangwahl bei Einstellung."
     ],
     "permissions": [
-      "Mandate: Mandant, Anwalt, Kanzleileitung/Sekretariat und Zusatzfreigaben. Mitarbeiter können Bewerbungen übernehmen; Personalentscheidungen bleiben geschützt."
+      "Mandate nur für Mandant, Anwalt, Leitung/Sekretariat und Gäste. Bewerbungsübernahme für Mitarbeiter; Personalentscheidungen geschützt."
     ],
     "fixed": [
       "Kurze Windows-Dateisperren beim Speichern abgefangen."
+    ]
+  },
+  {
+    "id": "existing-lawyer-area-on-takeover",
+    "date": "2026-11-12",
+    "fixed": [
+      "Übernahme nutzt den bestehenden Anwaltsbereich per Discord-ID, ohne neue Kategorie oder Umbenennung."
     ]
   }
 ]

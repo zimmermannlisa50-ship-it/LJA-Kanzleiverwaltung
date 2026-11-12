@@ -1,11 +1,11 @@
 const C=require('./config'),R=require('./rules'),U=require('./ui');
-module.exports=({client,deps,ensureLawyer,caseIndex})=>{
+module.exports=({client,deps,resolveLawyer,caseIndex})=>{
  const locks=new Set();
  const snapshot=ch=>ch.permissionOverwrites.cache.map(o=>({id:o.id,type:o.type,allow:o.allow.bitfield.toString(),deny:o.deny.bitfield.toString()}));
  const restore=list=>list.map(o=>({...o,allow:BigInt(o.allow),deny:BigInt(o.deny)}));
  async function assign(channel,ticket,member){
  if(!R.lawyer(member))throw Error('Nur Mitarbeiter mit Anwaltsrang dürfen Mandate übernehmen.');if(ticket.handlerId||ticket.closed||ticket.completed)throw Error('Dieses Ticket kann gerade nicht übernommen werden.');
- const forum=await ensureLawyer(member);const originalParent=channel.parentId,originalPermissions=snapshot(channel);const changed={...ticket,handlerId:member.id,lastHandlerId:member.id,waiting:false,originalCategoryId:ticket.originalCategoryId||originalParent,queuePermissions:ticket.queuePermissions||originalPermissions};
+ const forum=await resolveLawyer(member);const originalParent=channel.parentId,originalPermissions=snapshot(channel);const changed={...ticket,handlerId:member.id,lastHandlerId:member.id,waiting:false,originalCategoryId:ticket.originalCategoryId||originalParent,queuePermissions:ticket.queuePermissions||originalPermissions};
  try{
  await channel.setParent(forum.parentId,{lockPermissions:false,reason:'Mandat an zuständigen Anwalt zuordnen'});
  const perms=R.caseOverwrites(channel.guild,client.user.id,[ticket.userId,member.id,...(ticket.extraUserIds||[])]);await channel.permissionOverwrites.set(perms,'Mandat: Mandant, zuständiger Anwalt, Kanzleileitung/Sekretariat und Zusatzfreigaben');
