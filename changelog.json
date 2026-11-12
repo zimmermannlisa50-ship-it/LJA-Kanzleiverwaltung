@@ -271,5 +271,12 @@
     "changed": [
       "Fehlerdiagnose mit Zeitstempel und Antwortdauer, ohne Interaktionstokens."
     ]
+  },
+  {
+    "id": "recover-existing-application-controls",
+    "date": "2026-11-13",
+    "fixed": [
+      "Zwei bestehende Bewerbungen aus abweichendem Datenstand wiederhergestellt und ihre Buttons an die aktive Instanz gebunden."
+    ]
   }
 ]
