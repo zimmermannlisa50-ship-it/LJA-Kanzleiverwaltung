@@ -80,12 +80,20 @@
   {
     "id": "registration-prepared",
     "date": "2026-11-12",
-    "title": "Registrierung",
-    "added": [
-      "IC-Pflichtregistrierung mit Ticketübernahme vorbereitet; Aktivierung folgt nach Einschalten der Discord-Regelbestätigung."
-    ],
+    "title": "Rechteprotokoll",
     "changed": [
       "Rechteänderungen erhalten einen eigenen Abschnitt im Tageschangelog."
+    ]
+  },
+  {
+    "id": "registration-activated",
+    "date": "2026-11-12",
+    "title": "Registrierung aktiv",
+    "added": [
+      "Neue Mitglieder hinterlegen IC-Vorname, IC-Nachname und IC-Telefonnummer ohne zusätzliche Discord-Regelbestätigung; Ticketformulare übernehmen die Angaben."
+    ],
+    "permissions": [
+      "Bürgerbereiche sind erst nach Registrierung sichtbar. Willkommen und Regelwerk bleiben zugänglich. 170 Bestandsmitglieder bleiben ausgenommen; ihre bisherige Kanalsichtbarkeit wurde geprüft."
     ]
   }
 ]

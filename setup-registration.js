@@ -22,7 +22,7 @@ try{
  const keep=members.filter(m=>!m.roles.cache.has(CITIZEN)&&!m.permissions.has(P.Administrator));
  console.log(JSON.stringify({nativeRulesActive:guild.features.includes('MEMBER_VERIFICATION_GATE_ENABLED'),existingMembers:members.length,legacyAccessNeeded:keep.length,channelsToGate:targets.map(c=>({id:c.id,name:c.name})),publicChannels:[...OPEN]},null,2));
  if(!apply)return;
- if(!guild.features.includes('MEMBER_VERIFICATION_GATE_ENABLED'))throw Error('Bitte zuerst die native Discord-Regelbestätigung einschalten. Es wurden keine Rechte geändert.');
+
  fs.mkdirSync('data',{recursive:true});fs.writeFileSync('data/registration-rights-before.json',JSON.stringify(backup,null,2));
  mutated=true;
  if(keep.length){legacy=await guild.roles.create({name:'LJA | Bestandszugang',permissions:0n,reason:'Bisherige Zugriffe für Bestandsmitglieder ohne Bürgerrolle erhalten'});for(const member of keep){await member.roles.add(legacy.id,'Bestandsmitglied: bisherige Zugriffe ohne Pflichtregistrierung erhalten');granted.push(member.id);}}
@@ -33,7 +33,7 @@ try{
  const channel=guild.channels.cache.get(entry.id);if(normalized(serial(channel))!==normalized(entry.desired))await channel.permissionOverwrites.set(entry.desired.map(o=>({...o,allow:BigInt(o.allow),deny:BigInt(o.deny)})),'Neue Mitglieder: Bürgerkanäle erst nach IC-Registrierung; Bestandszugriffe erhalten');
  }
  }
- await guild.channels.fetch();await guild.members.fetch();
+ await guild.channels.fetch();for(const id of granted)await guild.members.fetch({user:id,force:true});
  const differences=[];
  for(const previous of backup.members){const member=guild.members.cache.get(previous.id);if(!member)continue;for(const c of backup.channels){const now=guild.channels.cache.get(c.id);if(now&&now.permissionsFor(member).has(P.ViewChannel)!==previous.visible.includes(c.id))differences.push({member:previous.id,channel:c.id});}}
  if(differences.length)throw Error(`Bestandszugriffe weichen ab (${differences.length}); Änderungen werden zurückgesetzt.`);
@@ -43,7 +43,7 @@ try{
   const changelogFile=require('path').join(__dirname,'changelog.json');
  const entries=JSON.parse(fs.readFileSync(changelogFile,'utf8').replace(/^\uFEFF/,''));
  if(!entries.some(e=>e.id==='registration-activated')){
- entries.push({id:'registration-activated',date:require('./changelog').berlinDate(),title:'Registrierung aktiv',added:['Neue Mitglieder hinterlegen nach der Regelbestätigung IC-Vorname, IC-Nachname und IC-Telefonnummer; Ticketformulare übernehmen die Angaben.'],permissions:[`Bürgerbereiche sind erst nach Registrierung sichtbar. Willkommen und Regelwerk bleiben zugänglich. ${backup.members.length} Bestandsmitglieder bleiben ausgenommen; ihre bisherige Kanalsichtbarkeit wurde geprüft.`]});
+ entries.push({id:'registration-activated',date:require('./changelog').berlinDate(),title:'Registrierung aktiv',added:['Neue Mitglieder hinterlegen IC-Vorname, IC-Nachname und IC-Telefonnummer ohne zusätzliche Discord-Regelbestätigung; Ticketformulare übernehmen die Angaben.'],permissions:[`Bürgerbereiche sind erst nach Registrierung sichtbar. Willkommen und Regelwerk bleiben zugänglich. ${backup.members.length} Bestandsmitglieder bleiben ausgenommen; ihre bisherige Kanalsichtbarkeit wurde geprüft.`]});
  fs.writeFileSync(changelogFile,JSON.stringify(entries,null,2)+'\n');
  }
  await require('./changelog')(client,'1570467201352335635');
@@ -58,5 +58,7 @@ try{
  }
 }finally{client.destroy();}});
 client.login(process.env.DISCORD_TOKEN).catch(e=>{console.error(e.message);process.exitCode=1;});
+
+
 
 

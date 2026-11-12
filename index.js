@@ -575,7 +575,7 @@ client.on("guildMemberUpdate", async (before, member) => {
     if (member.guild.id !== GUILD_ID || member.user.bot) return;
     try {
         if (registrationStore.mustRegister(member.id) && member.roles.cache.has("1477932235842654299")) await member.roles.remove("1477932235842654299", "IC-Registrierung steht noch aus");
-        if (member.pending === false && (before.pending !== false || !registrationStore.read().invited?.[member.id])) await require("./registration").invite(member);
+        if (!registrationStore.read().invited?.[member.id]) await require("./registration").invite(member);
     } catch (error) { console.error("Registrierungsfreigabe:", error.message); }
 });
 client.on("interactionCreate", async interaction => {
@@ -1427,5 +1427,6 @@ if (!TOKEN) {
 
 client.on("error", error => console.error("Discord-Clientfehler:", error.message));
 client.login(TOKEN).catch(error => { console.error("Bot-Login fehlgeschlagen:", error.message); process.exitCode = 1; });
+
 
 
