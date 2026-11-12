@@ -1,0 +1,54 @@
+﻿[
+  {
+    "id": "e51523f",
+    "date": "2026-11-12",
+    "title": "Kanzleipanels und neue Anfrageabläufe",
+    "added": [
+      "Philosophie und internes Kanzleiregelwerk mit deaktiviertem grünen Button „IN KENNTNIS GENOMMEN“ hinzugefügt.",
+      "Honorarordnung mit sämtlichen Leistungen und Preisen als Discord-Preislisten hinzugefügt.",
+      "Punktepanel mit „PUNKT ERSTELLEN“, Nutzererwähnung und automatischer Löschung nach 30 Minuten hinzugefügt. Aktive Einträge werden nach Neustarts weiter verwaltet.",
+      "Ticketarten Beschwerde und Rollenanfrage ergänzt.",
+      "IC-Telefonnummer in den Ticketformularen und Ticketübersichten ergänzt. Bewerbungen fragen nur IC-Vorname, IC-Nachname und Telefonnummer ab.",
+      "Sieben anfragbare Behördenrollen mit Freigabe- und Ablehnungsbuttons hinzugefügt. Nur Freigaberolle oder Kanzlei-Admins entscheiden; Annahme vergibt die Rolle und dokumentiert Discord-Name, Erwähnung und ID der entscheidenden Person.",
+      "Verwaltung über /bot-panel mit gesammelter und einzelner Panelveröffentlichung sowie Neuverbindung des Bots hinzugefügt.",
+      "Automatische Panelveröffentlichung beim Start, lokale Speicherung und Paneltests hinzugefügt."
+    ],
+    "changed": [
+      "Ticketpanel auf sechs auswählbare Ticketarten und den gewünschten Willkommenstext umgestellt.",
+      "Bewerbungen der zuletzt genannten Kategorie 1478007585784201351 zugeordnet. 1570448935992954921 bleibt für eine noch nicht umgesetzte Bewerbungsphase reserviert.",
+      "Öffentliche Panels werden als eigenständige Botnachrichten veröffentlicht. Command-Bestätigungen bleiben privat.",
+      "Logs und lokale Betriebsdaten von GitHub ausgeschlossen."
+    ],
+    "fixed": [
+      "Unbehandelte verspätete Discord-Antwort bei der Rollenauswahl abgefangen, die zuvor den Bot beenden konnte. Die Rollenauswahl bestätigt Interaktionen nun vor der weiteren Verarbeitung."
+    ]
+  },
+  {
+    "id": "3fddcd6",
+    "date": "2026-11-12",
+    "title": "Rollenanfragen im richtigen Zielkanal",
+    "changed": ["Rollenanfragen erscheinen direkt als Nachricht mit ANNEHMEN / ABLEHNEN im Textkanal 1570462925402021920. Es werden dafür keine Unterkanäle erstellt."],
+    "fixed": ["Fehler „parent_id: Not a category“ behoben: Der Textkanal wird nicht länger als Kategorie verwendet."]
+  },
+  {
+    "id": "1bb6bab",
+    "date": "2026-11-12",
+    "title": "Alte Panels vor der Neuveröffentlichung entfernen",
+    "changed": ["Der Bot löscht erkannte alte eigene Panels vor dem Posten der neuen Panels. Zuvor wurden überwiegend gespeicherte Nachrichten bearbeitet.", "Die Erkennung durchsucht den Kanalverlauf und funktioniert auch ohne lokal gespeicherte Panel-IDs."],
+    "fixed": ["Doppelte Ticket-, Punkte-, Verwaltungs- und Infopanels werden bei erneuter Veröffentlichung bereinigt. Nutzernachrichten und andere Botabläufe bleiben bestehen."]
+  },
+  {
+    "id": "cf0256a",
+    "date": "2026-11-12",
+    "title": "Alle Teile mehrteiliger Panels bereinigen",
+    "changed": ["Die Bereinigung berücksichtigt alle gespeicherten Nachrichten eines Panels sowie vollständige Dokumentfolgen mit früheren Nachrichtengrenzen."],
+    "fixed": ["Zurückbleibende Teile mehrteiliger Infopanels werden bei der erneuten Veröffentlichung entfernt. Einzelne Botzitate und Nutzernachrichten werden durch diese zusätzliche Erkennung nicht gelöscht."]
+  },
+  {
+    "id": "changelog-history-v2",
+    "date": "2026-11-12",
+    "title": "Nachvollziehbare Änderungshistorie",
+    "added": ["Dauerhafte Versionshistorie mit Datum, Versionskennung und getrennten Abschnitten für Hinzugefügt, Geändert, Behoben und Entfernt eingeführt.", "Die bisherigen vier Änderungsstände nachträglich dokumentiert.", "Alle dokumentierten Änderungen liegen zusätzlich im Repository in changelog.json."],
+    "changed": ["Neue Changelogs werden im Kanal 1570467201352335635 angehängt. Bestehende Einträge bleiben erhalten und werden nicht durch Panelbereinigungen gelöscht.", "Der Bot prüft beim Start die gespeicherten Versionskennungen im Discord-Verlauf und veröffentlicht nur fehlende Einträge. Auch nach Verlust lokaler Paneldaten werden vorhandene markierte Einträge erkannt."]
+  }
+]

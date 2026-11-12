@@ -1,6 +1,6 @@
 ﻿const {EmbedBuilder,ActionRowBuilder,ButtonBuilder,ButtonStyle,StringSelectMenuBuilder,ModalBuilder,TextInputBuilder,TextInputStyle,ChannelType}=require('discord.js');
 const fs=require('fs'),path=require('path');
-const VERSION='2026-11-panels-v1';
+const publishChangelogs=require('./changelog');
 const APPROVER='1485673349098111170';
 const ROLES={
 '1477932047665332338':'⚖️ Department of Justice',
@@ -25,6 +25,7 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  const locks=new Set();
  function ticketPayload(){return {embeds:[embed('Liberty Justice Associates','Willkommen bei Liberty Justice Associates.\n\nBitte wähle die passende Ticketart für dein Anliegen:\n\n⚖️ Notfall / Strafverteidigung\n🏛️ Klage gegen Staat / Amtshaftung\n📜 Verträge / Unternehmen\n💼 Bewerbungen\n🚩 Beschwerde\n⚡ Rollenanfrage')],components:[row(new StringSelectMenuBuilder().setCustomId('lja_ticket_type').setPlaceholder('Ticketart auswählen').addOptions([...Object.entries(TICKET_CATEGORIES).map(([value,c])=>({label:c.label,value,emoji:c.emoji})),{label:'Rollenanfrage',value:'rollen',emoji:'⚡'}]))]};}
  async function publish(key,target){
+ if(key==='changelog'){if(locks.has('changelog'))throw Error('Changelog wird bereits veröffentlicht.');locks.add('changelog');try{const record=await publishChangelogs(client,target||CHANNELS.changelog);const current=state();current.changelog=record;save(current);return;}finally{locks.delete('changelog');}}
  if(locks.has('publish:'+key))throw Error('Dieses Panel wird gerade aktualisiert.');locks.add('publish:'+key);
  try{
  const channel=await client.channels.fetch(target||CHANNELS[key]);if(!channel?.isTextBased())throw Error('Textkanal nicht gefunden.');
@@ -36,7 +37,6 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  }else if(key==='tickets')payloads=[ticketPayload()];
  else if(key==='punkte')payloads=[{embeds:[embed('LIBERTY JUSTICE ASSOCIATES','**Punkteübersicht**\n\nErstelle einen Punkt, damit du schnell gefunden wirst. Dein Eintrag wird nach 30 Minuten automatisch gelöscht.')],components:[row(button('lja_point','PUNKT ERSTELLEN',ButtonStyle.Success))]}];
  else if(key==='admin')payloads=[{embeds:[embed('LIBERTY JUSTICE ASSOCIATES','**Botverwaltung**\n\nPanels gesammelt oder einzeln aktualisieren. Der Neustart verbindet den Bot neu und gleicht die Panels ab.')],components:[row(button('lja_admin_all','ALLE PANELS AKTUALISIEREN'),button('lja_admin_restart','BOT NEU STARTEN',ButtonStyle.Danger)),row(new StringSelectMenuBuilder().setCustomId('lja_admin_publish').setPlaceholder('Einzelnes Panel aktualisieren').addOptions(Object.keys(CHANNELS).filter(k=>k!=='changelog').map(k=>({label:k,value:k}))))]}];
- else if(key==='changelog')payloads=[{embeds:[embed('⚖️ LIBERTY JUSTICE ASSOCIATES','**Changelog · Kanzleiverwaltung**\n━━━━━━━━━━━━━━━━━━━━\n• Philosophie, Regelwerk und Honorarordnung veröffentlicht.\n• Sechs Ticketarten mit IC-Telefonnummer und Bewerbungsformular.\n• Rollenanfragen mit Freigabe, Ablehnung und Rollenvergabe.\n• Punkte-Panel mit automatischer Löschung nach 30 Minuten.\n• Botverwaltung und automatische Panel-Aktualisierung.\n━━━━━━━━━━━━━━━━━━━━\n*Präzision. Integrität. Durchsetzungskraft.*')]}];
  if(!payloads)throw Error('Unbekanntes Panel.');
  const old=state()[key];const ids=[];
  // Auch ohne lokale IDs die eigenen Panels im Discord-Verlauf erkennen.
@@ -119,8 +119,9 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  await i.message.edit({embeds:[embed('⚡ Rollenanfrage',`**IC-Name:** ${r.first} ${r.last}\n**Discord:** <@${r.user}> (${r.user})\n**Rolle:** ${ROLES[r.role]}\n**Status:** ${accept?'Angenommen':'Abgelehnt'}\n**Entschieden von:** ${i.user.tag} · <@${i.user.id}> · ID: ${i.user.id}`)],components:[],allowedMentions:{parse:[]}});await i.editReply(accept?'Rolle vergeben.':'Anfrage abgelehnt.');}finally{locks.delete(i.message.id);}return;}
  }catch(e){console.error('Panel-Interaktion:',e);const payload={content:'Aktion fehlgeschlagen: '+e.message,ephemeral:true};if(i.deferred||i.replied)await i.editReply({content:payload.content}).catch(()=>{});else await i.reply(payload).catch(()=>{});}});
  let timer;
- return {publish,chooseRole,async start(){await sweep();if(!timer){timer=setInterval(()=>sweep().catch(console.error),15000);timer.unref();}await all();const s=state();if(s.version!==VERSION){await publish('changelog');const latest=state();latest.version=VERSION;save(latest);}if(s.admin)await publish('admin',s.admin.channel);}};
+ return {publish,chooseRole,async start(){await sweep();if(!timer){timer=setInterval(()=>sweep().catch(console.error),15000);timer.unref();}await all();await publish('changelog');const s=state();if(s.admin)await publish('admin',s.admin.channel);}};
 };
+
 
 
 
