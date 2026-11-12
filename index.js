@@ -76,7 +76,7 @@ const TICKET_CATEGORIES = {
     bewerbung: {
         label: "Bewerbungen",
         emoji: "💼",
-        categoryId: "1478007585784201351"
+        categoryId: "1570448935992954921"
     }
 };
 
@@ -1398,4 +1398,5 @@ if (!TOKEN) {
 
 client.on("error", error => console.error("Discord-Clientfehler:", error.message));
 client.login(TOKEN).catch(error => { console.error("Bot-Login fehlgeschlagen:", error.message); process.exitCode = 1; });
+
 

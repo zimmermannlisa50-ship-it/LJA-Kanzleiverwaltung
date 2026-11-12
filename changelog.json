@@ -60,5 +60,13 @@
     "changed": [
       "Punktenachrichten werden nach 3 statt 30 Minuten gelöscht."
     ]
+  },
+  {
+    "id": "application-category-staff",
+    "date": "2026-11-12",
+    "title": "Bewerbungen",
+    "changed": [
+      "Neue Bewerbungstickets werden unter Mitarbeiterverwaltung erstellt."
+    ]
   }
 ]
