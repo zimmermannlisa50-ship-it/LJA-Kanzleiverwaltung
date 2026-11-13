@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),{PermissionFlagsBits:P}=require('discord.js'),C=require('./personnel/config'),policy=require('./office-policy');
+const old=[{id:C.GUILD,type:0,allow:P.SendMessages,deny:0n},{id:C.EMPLOYEE,type:0,allow:P.SendMessages|P.ViewChannel,deny:0n},{id:'legacy-user',type:1,allow:P.SendMessages,deny:0n}];
+const all=policy.readonly(old,'bot');
+assert(all.find(o=>o.id===C.GUILD).deny&P.SendMessages);
+assert.equal(all.find(o=>o.id===C.EMPLOYEE).allow&P.SendMessages,0n);
+assert(all.find(o=>o.id===C.EMPLOYEE).allow&P.ViewChannel);
+assert.equal(all.find(o=>o.id==='legacy-user').allow&P.SendMessages,0n);
+for(const id of C.HR)assert(all.find(o=>o.id===id).allow&P.SendMessages);
+assert(all.find(o=>o.id==='bot').allow&P.SendMessages);
+const publicList=policy.gated('bot'),privateList=policy.gated('bot',true);
+assert(publicList.find(o=>o.id===C.GUILD).deny&P.ViewChannel);
+assert(publicList.find(o=>o.id===C.CITIZEN).allow&P.ViewChannel);
+assert.equal(publicList.find(o=>o.id===C.CITIZEN).allow&P.SendMessages,0n);
+assert(!privateList.some(o=>o.id===C.CITIZEN));
+assert.equal(policy.signature(all),policy.signature(policy.readonly(all,'bot')));
+console.log('OK: citizens/employees/member overrides cannot write, partners/leadership can, registration visibility and idempotence preserved.');

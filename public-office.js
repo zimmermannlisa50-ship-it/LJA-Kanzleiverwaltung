@@ -1,0 +1,51 @@
+const fs=require('node:fs'),path=require('node:path');
+const {ChannelType,EmbedBuilder,ActionRowBuilder,ButtonBuilder,ButtonStyle,StringSelectMenuBuilder,ModalBuilder,TextInputBuilder,TextInputStyle}=require('discord.js');
+const C=require('./personnel/config'),R=require('./personnel/rules'),S=require('./personnel/store'),O=require('./office-store'),policy=require('./office-policy'),register=require('./lawyer-register'),upsert=require('./office-messages');
+const row=(...c)=>new ActionRowBuilder().addComponents(...c);
+const card=(title,text)=>new EmbedBuilder().setColor(0xD4AF37).setAuthor({name:'LIBERTY JUSTICE ASSOCIATES'}).setTitle(title).setDescription(text);
+module.exports=function office(deps){
+ const {client,registration}=deps,locks=new Set();let refreshRunning,timer,debounce;
+ const prefix=()=>`lja_office:${registration.read().instanceId}:`,id=(action,...args)=>prefix()+[action,...args].join(':');
+ const current=async i=>{if(i.guildId!==C.GUILD)throw Error('Dieser Bereich gehört zu einem anderen Server.');return i.guild.members.fetch({user:i.user.id,force:true});};
+ function citizen(member){if(!member.roles.cache.has(C.CITIZEN)||registration.mustRegister(member.id))throw Error('Bitte zuerst das Kanzleiregelwerk akzeptieren und die Bürgerrolle freischalten.');}
+ const people=()=>register.entries(client.guilds.cache.get(C.GUILD).members.cache.values(),S.read(),registration.read().profiles||{});
+ async function selected(guild,user){const member=await guild.members.fetch({user,force:true}).catch(e=>{if(e.code===10007)return null;throw e;});if(!member||!R.lawyer(member)||S.read().employees[user]?.status!=='active')throw Error('Dieser Anwalt ist nicht mehr verfügbar. Bitte das Register neu öffnen.');return member;}
+ async function configure(){
+  const guild=client.guilds.cache.get(C.GUILD);await guild.channels.fetch();await guild.roles.fetch();
+  let channel=guild.channels.cache.get(O.read().registerChannel)||guild.channels.cache.find(c=>c.type===ChannelType.GuildText&&c.parentId===policy.GENERAL&&(c.topic==='LJA • Öffentliches Anwaltsregister'||c.name==='⚖️〣ᴀɴᴡᴀʟᴛꜱʀᴇɢɪꜱᴛᴇʀ'));
+  if(!channel)channel=await guild.channels.create({name:'⚖️〣ᴀɴᴡᴀʟᴛꜱʀᴇɢɪꜱᴛᴇʀ',type:ChannelType.GuildText,parent:policy.GENERAL,topic:'LJA • Öffentliches Anwaltsregister',permissionOverwrites:policy.gated(client.user.id)});
+  if(channel.parentId!==policy.GENERAL)await channel.setParent(policy.GENERAL,{lockPermissions:false});
+  O.change(s=>s.registerChannel=channel.id);
+  let status=guild.channels.cache.get(O.read().statusChannel)||guild.channels.cache.find(c=>c.topic==='LJA • Interner Botstatus');
+  if(!status)status=await guild.channels.create({name:'🟢〣ʙᴏᴛꜱᴛᴀᴛᴜꜱ',type:ChannelType.GuildText,parent:'1484218404092121340',topic:'LJA • Interner Botstatus',permissionOverwrites:policy.gated(client.user.id,true)});
+  O.change(s=>s.statusChannel=status.id);
+  const targets=[...policy.INFO,channel.id,status.id].map(id=>guild.channels.cache.get(id)).filter(c=>c?.permissionOverwrites);
+  const backup=path.join(__dirname,'data','public-permissions-before.json');if(!fs.existsSync(backup)){fs.mkdirSync(path.dirname(backup),{recursive:true});fs.writeFileSync(backup,JSON.stringify(targets.map(c=>({id:c.id,name:c.name,overwrites:c.permissionOverwrites.cache.map(o=>({id:o.id,type:o.type,allow:String(o.allow.bitfield),deny:String(o.deny.bitfield)}))})),null,2));}
+  for(const target of targets){let desired=target.id===channel.id?policy.gated(client.user.id):target.id===status.id?policy.gated(client.user.id,true):policy.readonly([...target.permissionOverwrites.cache.values()],client.user.id);
+   if(target.id===policy.ANNOUNCEMENTS){const {PermissionFlagsBits:P}=require('discord.js');let citizen=desired.find(o=>o.id===C.CITIZEN);if(!citizen){citizen={id:C.CITIZEN,type:0,allow:0n,deny:0n};desired.push(citizen);}citizen.allow|=P.ViewChannel|P.ReadMessageHistory;citizen.deny&=~(P.ViewChannel|P.ReadMessageHistory);const personnel=S.read().applicationRoleId;if(personnel&&!desired.some(o=>o.id===personnel))desired.push({id:personnel,type:0,allow:P.ViewChannel|P.ReadMessageHistory,deny:0n});}
+   if(policy.signature([...target.permissionOverwrites.cache.values()])!==policy.signature(desired))await target.permissionOverwrites.set(desired,'Informationskanäle: nur Partner und Kanzleileitung dürfen schreiben');
+  }
+ }
+ async function refreshRegister(){const channel=await client.channels.fetch(O.read().registerChannel);const all=people(),pages=register.pages(all);pages.at(-1).components=[row(new ButtonBuilder().setCustomId(id('contact')).setLabel('ANWALT KONTAKTIEREN').setStyle(ButtonStyle.Primary).setDisabled(!all.length))];await upsert(channel,'register',pages,client.user.id,'LJA | Anwaltsregister');}
+ async function refreshAnnouncements(){const channel=await client.channels.fetch(policy.ANNOUNCEMENTS),announcements=O.read().announcements||[];const payload={embeds:[card('📢 LIBERTY JUSTICE ASSOCIATES',announcements.length?'**Ankündigungen der Kanzlei**\n\nNeuigkeiten und Mitteilungen findest du in diesem Kanal.\n━━━━━━━━━━━━━━━━━━━━':'**Ankündigungen der Kanzlei**\n\nDerzeit keine Ankündigungen.\n━━━━━━━━━━━━━━━━━━━━').setFooter({text:'LJA | Ankündigungen'})],components:[row(new ButtonBuilder().setCustomId(id('announce')).setLabel('ANKÜNDIGUNG ERSTELLEN').setStyle(ButtonStyle.Primary))]};await upsert(channel,'announcements',[payload],client.user.id,'LJA | Ankündigungen');}
+ async function refresh(){if(refreshRunning)return refreshRunning;refreshRunning=(async()=>{if(!O.read().registerChannel)return;await refreshRegister();})().finally(()=>refreshRunning=null);return refreshRunning;}
+ function schedule(){clearTimeout(debounce);debounce=setTimeout(()=>refresh().catch(e=>require('./bot-diagnostics').error('Anwaltsregister',e)),1000);debounce.unref();}
+ async function chooser(i,page=0){const all=people(),last=Math.max(0,Math.ceil(all.length/25)-1);page=Math.max(0,Math.min(last,page));const group=all.slice(page*25,page*25+25);if(!group.length)return i.editReply({content:'Aktuell sind keine aktiven Anwälte verfügbar.',components:[]});const menu=new StringSelectMenuBuilder().setCustomId(id('choose',i.user.id)).setPlaceholder('Anwalt auswählen').addOptions(group.map(p=>({label:p.name.slice(0,100),value:p.id,description:('Telefon: '+(p.phone||'Ausstehend')).slice(0,100)})));const components=[row(menu)];if(last)components.push(row(new ButtonBuilder().setCustomId(id('page',Math.max(0,page-1),i.user.id)).setLabel('Zurück').setStyle(ButtonStyle.Secondary).setDisabled(!page),new ButtonBuilder().setCustomId(id('page',Math.min(last,page+1),i.user.id)).setLabel('Weiter').setStyle(ButtonStyle.Secondary).setDisabled(page===last)));return i.editReply({content:`Wähle den Anwalt für deine private Anfrage. Seite ${page+1}/${last+1}.`,components});}
+ async function handle(i){if(!i.customId?.startsWith(prefix()))return;try{
+  const [action,a,b]=i.customId.slice(prefix().length).split(':'),member=await current(i);
+  if(['contact','choose','page','request'].includes(action)){
+   citizen(member);if(i.channelId!==O.read().registerChannel)throw Error('Bitte das aktuelle Anwaltsregister verwenden.');
+   if(action==='contact'){await i.deferReply({flags:64});return chooser(i);}
+   if(action==='page'){if(b!==i.user.id)throw Error('Diese Auswahl gehört einer anderen Person.');await i.deferUpdate();return chooser(i,Number(a)||0);}
+   if(action==='choose'){if(a!==i.user.id)throw Error('Diese Auswahl gehört einer anderen Person.');const lawyer=await selected(i.guild,i.values[0]);return i.showModal(require('./ticket-form').build(id('request',lawyer.id),'beratung',registration.profile(i.user.id)));}
+   if(action==='request'){await i.deferReply({flags:64});if(locks.has(i.user.id))return i.editReply('Deine Anfrage wird bereits erstellt.');locks.add(i.user.id);try{const lawyer=await selected(i.guild,a),channel=await require('./direct-lawyer-ticket')(deps,member,lawyer,i.fields);return i.editReply('Deine private Anfrage an den ausgewählten Anwalt: '+channel);}finally{locks.delete(i.user.id);}}
+  }
+  if(['announce','announceSubmit'].includes(action)){
+   if(i.channelId!==policy.ANNOUNCEMENTS)throw Error('Bitte das Ankündigungspanel verwenden.');if(!R.applicationManager(member))throw Error('Nur Personalverwaltung, Partner und Kanzleileitung dürfen Ankündigungen erstellen.');
+   if(action==='announce'){const modal=new ModalBuilder().setCustomId(id('announceSubmit')).setTitle('Ankündigung erstellen');for(const [key,label,max,long]of [['title','Überschrift',150,false],['text','Ankündigungstext',3500,true]])modal.addComponents(row(new TextInputBuilder().setCustomId(key).setLabel(label).setStyle(long?TextInputStyle.Paragraph:TextInputStyle.Short).setMaxLength(max).setRequired(true)));return i.showModal(modal);}
+   await i.deferReply({flags:64});if(locks.has(i.id))return i.editReply('Diese Ankündigung wird bereits erstellt.');locks.add(i.id);try{const title=i.fields.getTextInputValue('title').trim(),text=i.fields.getTextInputValue('text').trim();if(!title||!text)throw Error('Bitte Überschrift und Text ausfüllen.');const channel=await client.channels.fetch(policy.ANNOUNCEMENTS),message=await channel.send({embeds:[card(title,text).setFooter({text:'LJA | Ankündigung · Erstellt von '+member.displayName}).setTimestamp()],allowedMentions:{parse:[]}});O.change(s=>{s.announcements||=[];s.announcements.push({id:message.id,author:member.id,title,createdAt:new Date().toISOString()});});await refreshAnnouncements();return i.editReply('Ankündigung veröffentlicht: '+message.url);}finally{locks.delete(i.id);}
+  }
+ }catch(e){require('./bot-diagnostics').error('Öffentliche Kanzleiverwaltung',e,i);if([10062,40060].includes(Number(e.code)))return;const content='Aktion nicht möglich: '+e.message;if(i.deferred||i.replied)await i.editReply({content}).catch(()=>{});else await i.reply({content,flags:64}).catch(()=>{});}}
+ client.on('interactionCreate',i=>void handle(i));client.on('guildMemberUpdate',schedule);client.on('guildMemberRemove',schedule);client.on('officeChanged',schedule);
+ return {handle,configure,refresh,people,async start(){await configure();await refresh();await refreshAnnouncements();if(!timer){timer=setInterval(()=>refresh().catch(e=>require('./bot-diagnostics').error('Anwaltsregister',e)),60000);timer.unref();}}};
+};

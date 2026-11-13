@@ -35,7 +35,6 @@ module.exports=function({client,hasRole,ADMIN_ROLE_IDS,TICKET_CATEGORIES,readJso
  documentText=fs.readFileSync(path.join(__dirname,key+'.txt'),'utf8');
  payloads=require('./document-panels').render(key,documentText);
  if(key==='regelwerk')payloads.at(-1).components=[registrationRow?registrationRow():require('./registration').acceptanceRow()];
- else if(key==='philosophie')payloads.at(-1).components=[row(button('lja_deco','IN KENNTNIS GENOMMEN',ButtonStyle.Success).setDisabled(true))];
  }else if(key==='tickets')payloads=[ticketPayload()];
  else if(key==='punkte')payloads=[{embeds:[embed('LIBERTY JUSTICE ASSOCIATES','**Punkteübersicht**\n\nErstelle einen Punkt, damit du schnell gefunden wirst. Dein Eintrag wird nach 3 Minuten automatisch gelöscht.')],components:[row(button('lja_point','PUNKT ERSTELLEN',ButtonStyle.Success))]}];
  else if(key==='admin')payloads=[{embeds:[embed('LIBERTY JUSTICE ASSOCIATES','**Botverwaltung**\n\nPanels gesammelt oder einzeln aktualisieren. Der Neustart verbindet den Bot neu und gleicht die Panels ab.')],components:[row(button('lja_admin_all','ALLE PANELS AKTUALISIEREN'),button('lja_admin_restart','BOT NEU STARTEN',ButtonStyle.Danger)),row(new StringSelectMenuBuilder().setCustomId('lja_admin_publish').setPlaceholder('Einzelnes Panel aktualisieren').addOptions(Object.keys(CHANNELS).filter(k=>k!=='changelog').map(k=>({label:k,value:k}))))]}];

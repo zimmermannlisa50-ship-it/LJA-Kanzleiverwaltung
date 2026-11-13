@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),{Collection}=require('discord.js'),C=require('./personnel/config'),L=require('./lawyer-register');
+const member=(id,roles)=>({id,displayName:id,user:{bot:false},roles:{cache:new Collection(roles.map(id=>[id,{}]))}});
+const lawyer=member('lawyer',[C.EMPLOYEE,C.LAWYERS[0]]),former=member('former',[C.EMPLOYEE,C.LAWYERS[0]]),staff=member('staff',[C.EMPLOYEE]);
+const state={employees:{lawyer:{status:'active',licenses:[],displayName:'Max Muster'},former:{status:'former',licenses:[]},staff:{status:'active',licenses:[]}}};
+const profiles={lawyer:{firstName:'Max',lastName:'Muster',phone:'555-123'}};
+let people=L.entries([lawyer,former,staff],state,profiles);assert.equal(people.length,1);let rendered=L.pages(people)[0].embeds[0].toJSON();assert(rendered.fields[0].value.includes('555-123'));assert(rendered.fields[0].value.includes('Ausstehend'));
+state.employees.lawyer.licenses=[{id:'license',expires:'2099-01-01',status:'approved',serial:'PRIVATE-SERIAL',files:['PRIVATE-PHOTO']}];state.employees.lawyer.currentLicenseId='license';
+people=L.entries([lawyer],state,profiles);rendered=L.pages(people)[0].embeds[0].toJSON();assert(rendered.fields[0].value.includes('01.01.2099'));assert(!JSON.stringify(rendered).includes('PRIVATE'));
+lawyer.roles.cache.delete(C.EMPLOYEE);assert.equal(L.entries([lawyer],state,profiles).length,0);
+const many=Array.from({length:61},(_,n)=>({id:String(n),name:'Anwalt '+n,firstName:'Max',lastName:'Muster',phone:'555',hasLicense:false}));const pages=L.pages(many);assert.equal(pages.length,8);for(const page of pages)assert(JSON.stringify(page.embeds[0].toJSON()).length<6000);
+console.log('OK: active lawyers only, public contact/expiry fields, missing license, removals, pagination and private license details excluded.');

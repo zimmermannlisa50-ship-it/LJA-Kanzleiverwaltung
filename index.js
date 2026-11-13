@@ -250,6 +250,16 @@ const client = new Client({
 const panels = require("./panels")({ client, hasRole, ADMIN_ROLE_IDS, TICKET_CATEGORIES, readJson, writeJson, DATA_DIR });
 const registrationStore = require("./registration-store");
 const personnel = require("./personnel")(client, { getTickets: getTicketData, saveTickets: saveTicketData, update: updateTicketMessage });
+const office = require("./public-office")({client, personnel, registration: registrationStore,
+    getTickets: getTicketData, saveTickets: saveTicketData,
+    getCounters: () => readJson(COUNTER_FILE), saveCounters: data => writeJson(COUNTER_FILE, data),
+    buildEmbed: buildTicketEmbed, buildComponents: buildTicketComponents,
+    queuePermissions: user => [
+        {id:GUILD_ID,type:0,allow:"0",deny:String(require('discord.js').PermissionFlagsBits.ViewChannel)},
+        ...[...new Set([user,client.user.id,...HANDLER_ROLE_IDS])].map(id=>({id,type:HANDLER_ROLE_IDS.includes(id)?0:1,allow:String(require('discord.js').PermissionsBitField.resolve(['ViewChannel','SendMessages','ReadMessageHistory','AttachFiles'])),deny:"0"}))
+    ]
+});
+const botStatus = require("./bot-status")(client);
 client.on("guildMemberAdd", async member => {
     if (member.guild.id !== GUILD_ID || member.user.bot) return;
     try {
@@ -315,6 +325,8 @@ client.once("clientReady", async () => {
     await registerCommands();
     await panels.start().catch(console.error);
     await personnel.start().catch(error => console.error("Personalverwaltung:", error.message));
+    await office.start().catch(error => diagnostics.error("Öffentliche Kanzleiverwaltung", error));
+    await botStatus.start().catch(error => diagnostics.error("Botstatus", error));
     if (registrationStore.read().active) {
         const guild = await client.guilds.fetch(GUILD_ID);
         if (guild.members.cache.size < guild.memberCount) await guild.members.fetch();

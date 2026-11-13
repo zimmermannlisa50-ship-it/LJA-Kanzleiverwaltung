@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),H=require('./bot-health'),{offlinePayload}=require('./status-monitor');
+const previous={startedAt:'2026-01-01T00:00:00Z',running:true,cleanExit:false,deployment:'one'};
+assert(H.begin(previous,'one').lastCrash.reason.includes('unerwartet'));
+assert(!H.begin(previous,'two').lastCrash);assert(H.begin(previous,'two').lastRestart.reason.includes('Deployment'));
+assert(!H.begin({...previous,cleanExit:true},'one').lastCrash);
+const fatal={at:'2026-01-01T00:00:01Z',reason:'out of memory'};assert.deepEqual(H.begin({...previous,lastCrash:fatal},'one').lastCrash,fatal);
+const message={embeds:[{type:'rich',timestamp:'2026-01-01T00:00:00Z',fields:[{name:'Verbindung',value:'🟢 Verbunden'},{name:'Letzte Unterbrechung',value:'Keine'}]}]};
+assert.equal(offlinePayload(message,Date.parse('2026-01-01T00:02:00Z')),null);
+const offline=offlinePayload(message,Date.parse('2026-01-01T00:04:00Z'));assert.equal(offline.embeds[0].color,0xe74c3c);assert(offline.embeds[0].fields[1].value.includes('genaue Ursache noch nicht bekannt'));assert.equal(offline.embeds[0].timestamp,message.embeds[0].timestamp);assert.equal(offlinePayload(offline,Date.parse('2026-01-01T00:05:00Z')),null);
+process.env.DISCORD_TOKEN='secret-test-token';assert(!H.safe(Error('secret-test-token https://example.com/private')).includes('secret-test-token'));
+console.log('OK: deployment vs crash detection, known failure cause preserved, independent stale heartbeat detection and credential redaction.');
