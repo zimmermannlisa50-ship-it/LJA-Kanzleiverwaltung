@@ -6,3 +6,4 @@ data/
 
 # Lokale Betriebsfreigabe des Hauptbots
 runtime-authority.json
+.railway-migration/
