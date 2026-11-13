@@ -19,3 +19,7 @@ IC-Nutzerprofil: Bei jedem erfolgreich erstellten Ticket werden IC-Vorname, IC-N
 
 Bereits geschlossene Kanäle gezielt bereinigen: node cleanup-closed-tickets.js zeigt verifizierte Kandidaten; --apply löscht sie nach Prüfung der eigenen HTML-Datei im festgelegten Archivkanal. Nicht archivierte oder offene Tickets werden nicht gelöscht.
 
+# Stammdaten bei Folgeanfragen
+
+Ticketformulare fragen nur fehlenden IC-Vornamen, IC-Nachnamen und die IC-Telefonnummer ab. Vorhandene Angaben werden beim Absenden direkt aus dem Registrierungsprofil übernommen, auch bei Bewerbungen. Ein bereits geöffnetes älteres Formular überschreibt keine inzwischen geänderten Stammdaten. Bewerbungen enthalten zusätzlich ein optionales Nachrichtenfeld.
+

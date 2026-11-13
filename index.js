@@ -395,44 +395,8 @@ client.on("interactionCreate", async interaction => {
                 });
             }
 
-            const modal = new ModalBuilder()
-                .setCustomId(ticketRouting.formId(categoryKey))
-                .setTitle("Anfrage an Liberty Justice Associates");
+            const modal = require("./ticket-form").build(ticketRouting.formId(categoryKey), categoryKey, registrationStore.profile(interaction.user.id));
 
-            const firstName = new TextInputBuilder()
-                .setCustomId("firstName")
-                .setLabel("IC-Vorname")
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true)
-                .setMaxLength(50);
-
-            const lastName = new TextInputBuilder()
-                .setCustomId("lastName")
-                .setLabel("IC-Nachname")
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true)
-                .setMaxLength(50);
-
-            const subject = new TextInputBuilder()
-                .setCustomId("subject")
-                .setLabel("Betreff des Anliegens")
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true)
-                .setMaxLength(100);
-
-            const facts = new TextInputBuilder()
-                .setCustomId("facts")
-                .setLabel("Sachverhalt")
-                .setStyle(TextInputStyle.Paragraph)
-                .setPlaceholder("Bitte schildere dein Anliegen möglichst ausführlich.")
-                .setRequired(true)
-                .setMaxLength(4000);
-
-            const phone = new TextInputBuilder().setCustomId("phone").setLabel("IC-Telefonnummer").setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(50);
-            const savedProfile = registrationStore.profile(interaction.user.id);
-            if (savedProfile) { if (savedProfile.firstName) firstName.setValue(savedProfile.firstName); if (savedProfile.lastName) lastName.setValue(savedProfile.lastName); if (savedProfile.phone) phone.setValue(savedProfile.phone); }
-            const inputs = categoryKey === "bewerbung" ? [firstName, lastName, phone] : [firstName, lastName, phone, subject, facts];
-            modal.addComponents(...inputs.map(input => new ActionRowBuilder().addComponents(input)));
             await interaction.showModal(modal);
             diagnostics.acknowledged(interaction);
             return;
@@ -462,12 +426,9 @@ client.on("interactionCreate", async interaction => {
 
             if (registrationStore.mustRegister(interaction.user.id)) return await interaction.editReply("Bitte zuerst deine IC-Daten über den Button im Kanzleiregelwerk hinterlegen.");
             if (categoryKey === "bewerbung" && personnel.isBlacklisted(interaction.member)) return await interaction.editReply("Du kannst derzeit keine Bewerbung einreichen.");
-            const firstName = interaction.fields.getTextInputValue("firstName").trim();
-            const lastName = interaction.fields.getTextInputValue("lastName").trim();
-            const phone = interaction.fields.getTextInputValue("phone").trim();
-            require("./ticket-profile").validate({ firstName, lastName, phone });
+            const { firstName, lastName, phone } = require("./ticket-profile").fromSubmission(registrationStore.profile(interaction.user.id), interaction.fields);
             const subject = categoryKey === "bewerbung" ? "Bewerbung" : interaction.fields.getTextInputValue("subject").trim();
-            const facts = categoryKey === "bewerbung" ? "Bewerbung eingegangen." : interaction.fields.getTextInputValue("facts").trim();
+            const facts = categoryKey === "bewerbung" ? (interaction.fields.fields.has("facts") ? interaction.fields.getTextInputValue("facts").trim() || "Bewerbung eingegangen." : "Bewerbung eingegangen.") : interaction.fields.getTextInputValue("facts").trim();
 
             // Nummer für die jeweilige Kategorie erhöhen
             const counters = readJson(COUNTER_FILE);

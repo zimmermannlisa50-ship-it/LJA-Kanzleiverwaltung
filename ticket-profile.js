@@ -9,4 +9,10 @@ function merge(previous,values,now=new Date().toISOString()){
 function save(store,userId,values){
  const current=store.read();current.profiles||={};current.profiles[userId]=merge(current.profiles[userId],values);store.write(current);return current.profiles[userId];
 }
-module.exports={validate,merge,save};
+const contactFields=['firstName','lastName','phone'];
+function missing(profile){return contactFields.filter(key=>!String(profile?.[key]??'').trim());}
+function fromSubmission(profile,fields){
+ const values={};for(const key of contactFields){const saved=String(profile?.[key]??'').trim();values[key]=saved||fields.getTextInputValue(key);}
+ return validate(values);
+}
+module.exports={validate,merge,save,missing,fromSubmission};

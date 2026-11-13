@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict'),R=require('./personnel/rules'),U=require('./personnel/ui'),F=require('./personnel/license-files');
+assert.equal(R.serial('abc12-3456'),'ABC12-3456');
+for(const serial of ['RR-ABC12-3456','ABC1-1234','ABC12-12345','ABCDE-12!4'])assert.throws(()=>R.serial(serial),/XXXXX-XXXX/);
+const modal=U.licenseModal('user').toJSON();
+assert(modal.components.every(c=>c.type===18));
+const serial=modal.components.find(c=>c.component.custom_id==='serial');assert.equal(serial.component.max_length,10);assert.equal(serial.label,'Seriennummer: XXXXX-XXXX');
+const upload=modal.components.find(c=>c.component.custom_id==='proof').component;
+assert.equal(upload.type,19);assert.equal(upload.required,true);assert.equal(upload.min_values,1);assert.equal(upload.max_values,2);
+for(const [mime,ext] of [['image/png','png'],['image/jpeg','jpg'],['image/webp','webp'],['image/gif','gif'],['image/heic','heic'],['image/heif','heif'],['application/pdf','pdf']])assert.equal(F.extension({contentType:mime}),ext);
+assert.equal(F.extension({name:'Lizenz.JPEG'}),'jpg');
+assert.equal(F.extension({name:'Foto.HEIC',contentType:'application/octet-stream'}),'heic');
+assert.throws(()=>F.extension({name:'Lizenz.png',contentType:'application/javascript'}));
+assert.throws(()=>F.extension({name:'Datei.exe'}));
+console.log('OK: short serial, native file upload, supported photo/PDF formats and rejected unsupported files.');
